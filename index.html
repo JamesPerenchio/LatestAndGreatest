@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sittinees Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* Basic styles */
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Transitions */
+        .transition-all { transition: all 0.3s ease-in-out; }
+        .progress-bar-inner { transition: width 0.5s ease-in-out; }
+        .circular-progress-bar { transition: stroke-dashoffset 0.5s ease-in-out; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .progress-icon-linear { transition: left 0.5s linear; }
+        .progress-icon-circular { transition: transform 0.5s linear; }
+
+
+        /* Tab Button Styling */
+        .tab-button { transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .tab-button.active { border-color: #4f46e5; background-color: #eef2ff; color: #4338ca; font-weight: 600; }
+        .tab-button:not(.active) { border-color: transparent; color: #6b7280; }
+        .tab-button:not(.active):hover { background-color: #f3f4f6; color: #1f2937; }
+
+        /* Simple pulsing animation */
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+        /* Input/Select/Textarea field styling */
+        .input-field, .select-field, .textarea-field { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; background-color: white; font-size: 0.875rem; /* text-sm */ }
+        .input-field:focus, .select-field:focus, .textarea-field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px #c7d2fe; }
+        .select-field { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
+        .todo-controls select { padding: 0.25rem 1.5rem 0.25rem 0.5rem; font-size: 0.75rem; }
+
+        /* Confirmation/Feedback styling */
+        .saved-feedback, .action-feedback { transition: opacity 0.5s ease-out; margin-top: 0.5rem; }
+
+        /* Anki Card Display */
+        .anki-card-content { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; min-height: 80px; background-color: #f9fafb; overflow-y: auto; max-height: 200px; }
+        .anki-card-content img { max-width: 100%; height: auto; }
+
+        /* Grade Button Styling */
+        .grade-button { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; transition: background-color 0.2s, border-color 0.2s, color 0.2s; border: 1px solid transparent; }
+        .grade-button-again { background-color: #fee2e2; border-color: #fca5a5; color: #b91c1c; } .grade-button-again:hover { background-color: #fecaca; }
+        .grade-button-hard { background-color: #ffedd5; border-color: #fdba74; color: #c2410c; } .grade-button-hard:hover { background-color: #fed7aa; }
+        .grade-button-good { background-color: #dcfce7; border-color: #86efac; color: #166534; } .grade-button-good:hover { background-color: #bbf7d0; }
+        .grade-button-easy { background-color: #e0e7ff; border-color: #a5b4fc; color: #3730a3; } .grade-button-easy:hover { background-color: #c7d2fe; }
+
+        /* ToDo List Item Styling */
+        .todo-item { display: flex; flex-direction: column; padding: 0.75rem; background-color: white; border-radius: 0.375rem; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); transition: background-color 0.2s; }
+        .todo-item:hover { background-color: #f9fafb; }
+        .todo-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+        .todo-text-container { flex-grow: 1; }
+        .todo-text { cursor: pointer; display: block; margin-bottom: 0.25rem; }
+        .todo-text.completed { text-decoration: line-through; color: #9ca3af; }
+        .todo-controls { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+        .todo-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem; border-top: 1px solid #f3f4f6; padding-top: 0.5rem; }
+        .todo-badges { display: flex; gap: 0.5rem; }
+        .priority-badge, .status-badge { display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+        .priority-low { background-color: #dbeafe; color: #1e40af; } .priority-medium { background-color: #d1fae5; color: #065f46; } .priority-high { background-color: #fef3c7; color: #92400e; } .priority-critical { background-color: #fee2e2; color: #991b1b; }
+        .status-todo { background-color: #e5e7eb; color: #374151; } .status-doing { background-color: #e0e7ff; color: #3730a3; } .status-onhold { background-color: #f3e8ff; color: #6b21a8; } .status-done { background-color: #dcfce7; color: #166534; }
+
+        /* Anki Stats Display */
+        .anki-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; text-align: center; }
+        .anki-stat-item { background-color: #f9fafb; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e5e7eb; }
+        .anki-stat-label { font-size: 0.75rem; color: #6b7280; display: block; }
+        .anki-stat-value { font-size: 1.125rem; font-weight: 600; color: #1f2937; }
+
+        /* Pomodoro Icon Settings */
+        .icon-option { cursor: pointer; padding: 0.5rem; border: 2px solid transparent; border-radius: 0.375rem; transition: border-color 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 60px;}
+        .icon-option.selected { border-color: #4f46e5; /* indigo-600 */ }
+        .icon-option:hover { background-color: #f3f4f6; }
+        .icon-option svg, .icon-option img { width: 2rem; height: 2rem; margin-bottom: 0.25rem; } /* 32px */
+        .icon-option span { font-size: 0.75rem; color: #6b7280; }
+
+        /* Overview ToDo Snippet */
+        .overview-todo-list { list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto; }
+        .overview-todo-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; padding: 0.25rem 0; border-bottom: 1px solid #f3f4f6; gap: 0.5rem; }
+        .overview-todo-item:last-child { border-bottom: none; }
+        .overview-todo-text { flex-grow: 1; margin-right: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .overview-todo-badges { display: flex; gap: 0.25rem; flex-shrink: 0; } /* Badges in overview */
+
+        /* Hamburger Menu */
+        .mobile-menu { transition: transform 0.3s ease-in-out; }
+
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <div
+        x-data="dashboardApp()"
+        x-init="init()"
+        @keydown.window="handleGlobalKeydown($event)"
+        class="flex flex-col min-h-screen"
+        x-cloak
+    >
+        <header class="bg-white shadow-md sticky top-0 z-20">
+            <div class="container mx-auto px-4 md:px-8 flex justify-between items-center h-16">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">Sittinee Leelaphilas</h1>
+                <button @click="isMenuOpen = !isMenuOpen" class="md:hidden p-2 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <nav class="hidden md:flex space-x-1">
+                    <button @click="setActiveTab('overview')" :class="{ 'active': activeTab === 'overview' }" class="tab-button py-2 px-3 text-sm">Overview</button>
+                    <button @click="setActiveTab('study')" :class="{ 'active': activeTab === 'study' }" class="tab-button py-2 px-3 text-sm">Study</button>
+                    <button @click="setActiveTab('pomodoro')" :class="{ 'active': activeTab === 'pomodoro' }" class="tab-button py-2 px-3 text-sm">Pomodoro</button>
+                    <button @click="setActiveTab('todo')" :class="{ 'active': activeTab === 'todo' }" class="tab-button py-2 px-3 text-sm">ToDo List</button>
+                    <button @click="setActiveTab('anki')" :class="{ 'active': activeTab === 'anki' }" class="tab-button py-2 px-3 text-sm">Anki</button>
+                    <button @click="setActiveTab('settings')" :class="{ 'active': activeTab === 'settings' }" class="tab-button py-2 px-3 text-sm">Settings</button>
+                </nav>
+            </div>
+        </header>
+
+        <nav
+            class="md:hidden bg-white shadow-lg mobile-menu absolute top-16 left-0 right-0 z-10 overflow-hidden"
+            :style="isMenuOpen ? 'max-height: 500px; transform: translateY(0);' : 'max-height: 0; transform: translateY(-100%);'"
+            x-show="isMenuOpen"
+            @click.away="isMenuOpen = false"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform -translate-y-4"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform -translate-y-4"
+        >
+            <div class="flex flex-col px-4 pt-2 pb-4 space-y-1">
+                <button @click="setActiveTab('overview'); isMenuOpen = false" :class="{ 'active': activeTab === 'overview' }" class="tab-button w-full justify-start py-2 px-3 text-sm">Overview</button>
+                <button @click="setActiveTab('study'); isMenuOpen = false" :class="{ 'active': activeTab === 'study' }" class="tab-button w-full justify-start py-2 px-3 text-sm">Study</button>
+                <button @click="setActiveTab('pomodoro'); isMenuOpen = false" :class="{ 'active': activeTab === 'pomodoro' }" class="tab-button w-full justify-start py-2 px-3 text-sm">Pomodoro</button>
+                <button @click="setActiveTab('todo'); isMenuOpen = false" :class="{ 'active': activeTab === 'todo' }" class="tab-button w-full justify-start py-2 px-3 text-sm">ToDo List</button>
+                <button @click="setActiveTab('anki'); isMenuOpen = false" :class="{ 'active': activeTab === 'anki' }" class="tab-button w-full justify-start py-2 px-3 text-sm">Anki</button>
+                <button @click="setActiveTab('settings'); isMenuOpen = false" :class="{ 'active': activeTab === 'settings' }" class="tab-button w-full justify-start py-2 px-3 text-sm">Settings</button>
+            </div>
+        </nav>
+
+        <main class="container mx-auto p-4 md:p-8 flex-grow">
+            <div class="bg-white p-6 rounded-lg shadow-md min-h-[450px]">
+
+                <div x-show="activeTab === 'overview'" x-transition.opacity.duration.300ms>
+                     <h2 class="text-xl font-semibold mb-6 text-center text-gray-700">Dashboard Overview</h2>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                            <h3 class="font-medium text-indigo-600 mb-2">Pomodoro Status</h3>
+                            <p class="text-lg font-mono mb-2" :class="{ 'text-red-600': isWorkMode, 'text-green-600': !isWorkMode }">
+                                <span x-text="isWorkMode ? 'Work' : 'Break'"></span>:
+                                <span x-text="String(timerMinutes).padStart(2, '0')"></span>:<span x-text="String(timerSeconds).padStart(2, '0')"></span>
+                                (<span x-text="isRunning ? 'Running' : 'Paused/Idle'"></span>)
+                            </p>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 max-w-xs mx-auto relative mb-3">
+                                <div class="h-2.5 rounded-full progress-bar-inner" :class="isWorkMode ? 'bg-red-500' : 'bg-green-500'" :style="{ width: timerProgress + '%' }"></div>
+                                <div class="absolute top-1/2 -translate-y-1/2 h-5 w-5 progress-icon-linear" :style="{ left: `calc(${timerProgress}% - 10px)` }" x-show="settings.pomodoroIconId !== 'none'">
+                                    <template x-if="selectedPomodoroIconDataUrl">
+                                        <img :src="selectedPomodoroIconDataUrl" alt="Pomo Icon" class="w-full h-full object-contain rounded-full">
+                                    </template>
+                                </div>
+                            </div>
+                             <div class="flex justify-center space-x-2 mt-2">
+                                <button @click="startTimer()" :disabled="isRunning" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 transition-colors">Start</button>
+                                <button @click="pauseTimer()" :disabled="!isRunning" class="px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:bg-gray-400 transition-colors">Pause</button>
+                                <button @click="resetTimer()" class="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">Reset</button>
+                            </div>
+                            <button @click="setActiveTab('pomodoro')" class="mt-3 text-sm text-indigo-500 hover:underline">Go to Timer Details</button>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                             <h3 class="font-medium text-purple-600 mb-2 text-center">Upcoming Tasks</h3>
+                             <ul class="overview-todo-list">
+                                <template x-if="overviewTodos.length === 0">
+                                    <li class="text-center text-gray-500 italic py-2">Nothing pending!</li>
+                                </template>
+                                <template x-for="todo in overviewTodos" :key="todo.id">
+                                    <li class="overview-todo-item">
+                                        <span class="overview-todo-text" x-text="todo.text"></span>
+                                        <div class="overview-todo-badges">
+                                            <span :class="getPriorityClass(todo.priority)" class="priority-badge flex-shrink-0" x-text="todo.priority"></span>
+                                            <span :class="getStatusClass(todo.status)" class="status-badge flex-shrink-0" x-text="todo.status"></span>
+                                        </div>
+                                    </li>
+                                </template>
+                             </ul>
+                             <div class="text-center">
+                                <button @click="setActiveTab('todo')" class="mt-3 text-sm text-purple-500 hover:underline">Go to Full List</button>
+                             </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center"> <h3 class="font-medium text-cyan-600 mb-2">AnkiConnect</h3> <p class="text-sm animate-pulse" x-show="ankiLoading && !ankiStatusCheckComplete">Initializing...</p> <p class="text-sm animate-pulse" x-show="ankiLoading && ankiStatusCheckComplete && !currentReviewCard">Checking...</p> <p class="text-sm text-red-600" x-show="!ankiLoading && ankiError && ankiStatusCheckComplete" x-text="ankiError ? ('Error: ' + (ankiError.includes(':') ? ankiError.split(':')[1].trim() : ankiError)) : ''"></p> <p class="text-sm text-green-600" x-show="!ankiLoading && !ankiError && ankiConnected && ankiStatusCheckComplete"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1 -mt-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Connected </p> <p class="text-sm text-gray-500" x-show="!ankiLoading && !ankiConnected && !ankiError && ankiStatusCheckComplete"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1 -mt-1"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Disconnected / Not Running </p> <button @click="setActiveTab('anki')" class="mt-2 text-sm text-cyan-500 hover:underline">Go to Anki</button> </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                            <h3 class="font-medium text-orange-600 mb-2">Weather & AQI (Bangkok)</h3>
+                            <div x-show="weatherLoading" class="text-sm text-gray-500 animate-pulse">Loading weather...</div>
+                            <div x-show="weatherError" class="text-sm text-red-500" x-text="weatherError"></div>
+                            <div x-show="!weatherLoading && !weatherError && weatherData">
+                                <p class="text-lg">
+                                    <span x-text="getWeatherEmoji(weatherData?.description)"></span>
+                                    <span x-text="weatherData?.temp ?? 'N/A'"></span>&deg;C,
+                                    <span x-text="weatherData?.description ?? 'N/A'"></span>
+                                </p>
+                                <p class="text-sm text-gray-600 mt-1">
+                                    AQI: <span x-text="weatherData?.aqi ?? 'N/A'"></span> (<span x-text="getAqiMeaning(weatherData?.aqi)"></span>)
+                                </p>
+                            </div>
+                             <p x-show="!weatherLoading && !weatherError && !weatherData && settings.apiKeyWeather" class="text-sm text-gray-400 italic">Weather data unavailable.</p>
+                             <p x-show="!settings.apiKeyWeather" class="text-sm text-gray-400 italic">Configure API Key in Settings</p>
+                             <button @click="fetchWeatherAndAQI()" :disabled="weatherLoading || !settings.apiKeyWeather" class="mt-2 text-sm text-orange-500 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"> <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m0 0a9 9 0 0 1 9-9m-9 9a9 9 0 0 0 9 9"/></svg> Refresh </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'study'" x-transition.opacity.duration.300ms>
+                     <h2 class="text-xl font-semibold mb-6 text-center text-green-600">Study Session</h2>
+                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                         <div class="lg:col-span-1 bg-gray-50 p-4 rounded-lg border">
+                              <h3 class="text-lg font-medium text-indigo-600 mb-3 text-center">Pomodoro</h3>
+                              <div class="flex flex-col items-center mb-4">
+                                 <div class="relative flex items-center justify-center mb-4" :style="settings.pomodoroStyle === 'circular' ? 'width: 150px; height: 150px;' : ''">
+                                     <template x-if="settings.pomodoroStyle === 'circular'">
+                                         <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100"> <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"></circle> <circle class="circular-progress-bar" cx="50" cy="50" r="45" fill="none" :stroke="isWorkMode ? '#ef4444' : '#22c55e'" stroke-width="10" :stroke-dasharray="2 * Math.PI * 45" :stroke-dashoffset="(2 * Math.PI * 45) * (1 - timerProgress / 100)"> </circle> <g x-show="settings.pomodoroIconId !== 'none' && selectedPomodoroIconDataUrl" :style="{ transform: `rotate(${(timerProgress / 100) * 360 - 90}deg) translate(45px) rotate(${90 - (timerProgress / 100) * 360}deg)`, transformOrigin: '50px 50px' }" class="progress-icon-circular"> <image :href="selectedPomodoroIconDataUrl" x="-10" y="-10" height="20" width="20" /> </g> </svg>
+                                     </template>
+                                     <div class="relative z-10 flex flex-col items-center">
+                                          <div class="font-mono" :class="{ 'text-4xl': settings.pomodoroStyle === 'circular', 'text-5xl': settings.pomodoroStyle !== 'circular', 'text-red-700': isWorkMode, 'text-green-700': !isWorkMode }"> <span x-text="String(timerMinutes).padStart(2, '0')"></span>:<span x-text="String(timerSeconds).padStart(2, '0')"></span> </div>
+                                         <p class="text-xs text-gray-500 mt-1" x-text="isWorkMode ? 'Work' : 'Break'"></p>
+                                     </div>
+                                 </div>
+                                 <template x-if="settings.pomodoroStyle === 'linear'">
+                                     <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4 dark:bg-gray-700 max-w-xs mx-auto relative">
+                                         <div class="h-2.5 rounded-full progress-bar-inner" :class="isWorkMode ? 'bg-red-500' : 'bg-green-500'" :style="{ width: timerProgress + '%' }"></div>
+                                         <div class="absolute top-1/2 -translate-y-1/2 h-5 w-5 progress-icon-linear" :style="{ left: `calc(${timerProgress}% - 10px)` }" x-show="settings.pomodoroIconId !== 'none'">
+                                             <template x-if="selectedPomodoroIconDataUrl"><img :src="selectedPomodoroIconDataUrl" alt="Pomo Icon" class="w-full h-full object-contain rounded-full"></template>
+                                         </div>
+                                     </div>
+                                 </template>
+                                 <div class="flex justify-center space-x-2 mt-2"> <button @click="startTimer()" :disabled="isRunning" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400">Start</button> <button @click="pauseTimer()" :disabled="!isRunning" class="px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:bg-gray-400">Pause</button> <button @click="resetTimer()" class="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600">Reset</button> </div>
+                              </div>
+                         </div>
+
+                         <div class="lg:col-span-1 bg-gray-50 p-4 rounded-lg border">
+                             <h3 class="text-lg font-medium text-cyan-600 mb-3 text-center">Anki Review</h3>
+                             <div class="flex items-center gap-2 mb-2">
+                                 <select x-model="ankiReviewType" class="select-field text-xs flex-grow"> <option value="due">Due</option> <option value="new">New</option> <option value="learn">Learning</option> </select>
+                                 <select x-model="ankiReviewDeck" class="select-field text-xs flex-grow" :disabled="ankiDeckNames.length === 0 || !ankiConnected"> <option value="">All Decks</option> <template x-for="deckName in ankiDeckNames" :key="deckName"><option :value="deckName" x-text="deckName"></option></template> </select>
+                             </div>
+                             <button @click="fetchNextDueCard()" :disabled="ankiLoading || !ankiConnected" class="w-full mb-3 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">Fetch Next</button>
+                             <div x-show="currentReviewCard" class="mt-2 space-y-2" x-transition>
+                                 <div> <label class="block text-xs font-medium text-gray-500 mb-1">Front:</label> <div class="anki-card-content text-sm" x-html="currentReviewCard?.front || 'Error'"></div> </div>
+                                 <div x-show="showAnswer" x-transition.opacity> <label class="block text-xs font-medium text-gray-500 mb-1">Back:</label> <div class="anki-card-content text-sm" x-html="currentReviewCard?.back || 'Error'"></div> </div>
+                                 <div class="flex justify-center mt-2 space-x-2"> <button x-show="!showAnswer" @click="showAnswer = true" class="px-4 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600">Show</button> <div x-show="showAnswer" class="flex flex-wrap justify-center gap-2" x-transition> <button @click="answerCard(1)" class="px-2 py-1 text-xs grade-button grade-button-again">Again</button> <button @click="answerCard(2)" class="px-2 py-1 text-xs grade-button grade-button-hard">Hard</button> <button @click="answerCard(3)" class="px-2 py-1 text-xs grade-button grade-button-good">Good</button> <button @click="answerCard(4)" class="px-2 py-1 text-xs grade-button grade-button-easy">Easy</button> </div> </div>
+                             </div>
+                             <div x-show="!currentReviewCard && !ankiLoading && ankiConnected && ankiReviewFeedback" class="text-center text-gray-500 text-xs italic mt-2 action-feedback" x-text="ankiReviewFeedback"> </div>
+                             <div x-show="!ankiConnected && ankiStatusCheckComplete" class="text-center text-red-500 text-xs italic mt-2"> Connect to Anki </div>
+                         </div>
+
+                         <div class="lg:col-span-1 bg-gray-50 p-4 rounded-lg border flex flex-col">
+                             <h3 class="text-lg font-medium text-purple-600 mb-3 text-center">Scratchpad</h3>
+                             <textarea
+                                x-model="studyNotes"
+                                placeholder="Write down quick notes here...&#10;Notes are saved even after reloads"
+                                class="textarea-field flex-grow text-sm min-h-[200px]"
+                             ></textarea>
+                             <p class="text-xs text-gray-400 text-center mt-2">Notes are saved automatically.</p>
+                         </div>
+                     </div>
+                 </div>
+
+                <div x-show="activeTab === 'pomodoro'" x-transition.opacity.duration.300ms>
+                     <h2 class="text-xl font-semibold mb-4 text-center text-indigo-600">Pomodoro Timer</h2>
+                     <p class="text-center text-sm text-gray-500 mb-4"> Session Lengths: Work <span x-text="settings.pomodoroWork"></span> min / Break <span x-text="settings.pomodoroBreak"></span> min (<button @click="setActiveTab('settings')" class="text-indigo-500 hover:underline">Change</button>) </p>
+                     <div class="flex flex-col items-center mb-4">
+                         <div class="relative flex items-center justify-center mb-4" :style="settings.pomodoroStyle === 'circular' ? 'width: 200px; height: 200px;' : ''">
+                             <template x-if="settings.pomodoroStyle === 'circular'">
+                                 <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+                                     <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"></circle>
+                                     <circle class="circular-progress-bar" cx="50" cy="50" r="45" fill="none" :stroke="isWorkMode ? '#ef4444' : '#22c55e'" stroke-width="10" :stroke-dasharray="2 * Math.PI * 45" :stroke-dashoffset="(2 * Math.PI * 45) * (1 - timerProgress / 100)"> </circle>
+                                     <g x-show="settings.pomodoroIconId !== 'none' && selectedPomodoroIconDataUrl"
+                                        :style="{ transform: `rotate(${(timerProgress / 100) * 360 - 90}deg) translate(45px) rotate(${90 - (timerProgress / 100) * 360}deg)`, transformOrigin: '50px 50px' }"
+                                        class="progress-icon-circular">
+                                         <image :href="selectedPomodoroIconDataUrl" x="-10" y="-10" height="20" width="20" />
+                                     </g>
+                                 </svg>
+                             </template>
+                             <div class="relative z-10 flex flex-col items-center">
+                                  <div class="font-mono" :class="{ 'text-5xl': settings.pomodoroStyle === 'circular', 'text-6xl': settings.pomodoroStyle !== 'circular', 'text-red-700': isWorkMode, 'text-green-700': !isWorkMode }">
+                                     <span x-text="String(timerMinutes).padStart(2, '0')"></span>:<span x-text="String(timerSeconds).padStart(2, '0')"></span>
+                                  </div>
+                                 <p class="text-sm text-gray-500 mt-1" x-text="isWorkMode ? 'Work Session' : 'Break Time'"></p>
+                             </div>
+                         </div>
+                         <template x-if="settings.pomodoroStyle === 'linear'">
+                             <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4 dark:bg-gray-700 max-w-md mx-auto relative">
+                                 <div class="h-2.5 rounded-full progress-bar-inner" :class="isWorkMode ? 'bg-red-500' : 'bg-green-500'" :style="{ width: timerProgress + '%' }"></div>
+                                 <div class="absolute top-1/2 -translate-y-1/2 h-5 w-5 progress-icon-linear" :style="{ left: `calc(${timerProgress}% - 10px)` }" x-show="settings.pomodoroIconId !== 'none'">
+                                     <template x-if="selectedPomodoroIconDataUrl">
+                                         <img :src="selectedPomodoroIconDataUrl" alt="Pomo Icon" class="w-full h-full object-contain rounded-full">
+                                     </template>
+                                 </div>
+                             </div>
+                         </template>
+                         <div class="flex justify-center space-x-3 mt-4"> <button @click="startTimer()" :disabled="isRunning" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 transition-colors">Start</button> <button @click="pauseTimer()" :disabled="!isRunning" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:bg-gray-400 transition-colors">Pause</button> <button @click="resetTimer()" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">Reset</button> </div>
+                         <div class="text-center mt-3"> <button @click="switchMode()" class="text-sm text-indigo-600 hover:text-indigo-800" :disabled="isRunning">Switch to <span x-text="isWorkMode ? 'Break' : 'Work'"></span></button> </div>
+                     </div>
+                </div>
+
+                <div x-show="activeTab === 'todo'" x-transition.opacity.duration.300ms>
+                     <h2 class="text-xl font-semibold mb-4 text-center text-purple-600">ToDo List</h2>
+                     <div class="flex flex-col sm:flex-row gap-4 mb-4 max-w-xl mx-auto">
+                         <div class="flex flex-grow">
+                             <input type="text" x-model="newTodo" @keydown.enter="addTodo()" placeholder="Add a new task..." class="input-field flex-grow rounded-r-none">
+                             <button @click="addTodo()" class="px-4 py-2 bg-purple-500 text-white rounded-r-md hover:bg-purple-600 transition-colors border border-purple-500 flex-shrink-0">Add</button>
+                         </div>
+                         <div class="flex gap-2 flex-shrink-0 justify-end">
+                             <label for="todo-sort" class="text-sm text-gray-600 self-center">Sort by:</label>
+                             <select id="todo-sort" x-model="todoSortBy" class="select-field !w-auto text-sm">
+                                 <option value="createdAt">Date Created</option>
+                                 <option value="priority">Priority</option>
+                                 </select>
+                              <button @click="todoSortAsc = !todoSortAsc" class="p-2 border rounded-md bg-white hover:bg-gray-50" title="Toggle Sort Direction">
+                                 <svg x-show="todoSortAsc" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"/></svg>
+                                 <svg x-show="!todoSortAsc" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/></svg>
+                              </button>
+                         </div>
+                     </div>
+                     <ul class="space-y-3 max-h-[60vh] overflow-y-auto max-w-xl mx-auto border rounded-md p-3 bg-gray-50">
+                         <template x-if="!sortedTodos || sortedTodos.length === 0"><p class="text-gray-500 text-center italic py-4">No tasks yet!</p></template>
+                         <template x-for="todo in sortedTodos" :key="todo.id">
+                             <li class="todo-item">
+                                 <div class="todo-main">
+                                     <div class="todo-text-container"> <span @click="toggleTodoComplete(todo.id)" class="todo-text" :class="{ 'completed': todo.completed }" x-text="todo.text"></span> </div>
+                                     <div class="todo-controls"> <select x-model="todo.priority" @change="updateTodo(todo.id)" class="select-field" title="Set Priority"> <option value="Low">Low</option> <option value="Medium">Medium</option> <option value="High">High</option> <option value="Critical">Critical</option> </select> <select x-model="todo.status" @change="updateTodoStatus(todo.id, $event.target.value)" class="select-field" title="Set Status"> <option value="ToDo">ToDo</option> <option value="Doing">Doing</option> <option value="On Hold">On Hold</option> <option value="Done">Done</option> </select> <button @click="deleteTodo(todo.id)" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-100 flex-shrink-0" title="Delete Task"> <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> </button> </div>
+                                 </div>
+                                 <div class="todo-meta"> <div class="todo-badges"> <span :class="getPriorityClass(todo.priority)" class="priority-badge" x-text="todo.priority"></span> <span :class="getStatusClass(todo.status)" class="status-badge" x-text="todo.status"></span> </div> <div> Created: <span x-text="formatTimestamp(todo.createdAt)"></span> <template x-if="todo.completedAt"> | Completed: <span x-text="formatTimestamp(todo.completedAt)"></span> </template> </div> </div>
+                             </li>
+                         </template>
+                     </ul>
+                </div>
+
+                <div x-show="activeTab === 'anki'" x-transition.opacity.duration.300ms>
+                    <h2 class="text-xl font-semibold mb-6 text-center text-cyan-600">AnkiConnect</h2>
+                    <div class="max-w-2xl mx-auto mb-8 p-4 border rounded-lg shadow-sm bg-white"> <h3 class="text-lg font-medium text-gray-700 mb-3 text-center">Review Cards</h3> <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4"> <div> <label for="anki-review-type-select" class="block text-xs font-medium text-gray-500 mb-1">Card Type:</label> <select id="anki-review-type-select" x-model="ankiReviewType" class="select-field"> <option value="due">Due</option> <option value="new">New</option> <option value="learn">Learning</option> </select> </div> <div> <label for="anki-review-deck-select" class="block text-xs font-medium text-gray-500 mb-1">Deck:</label> <select id="anki-review-deck-select" x-model="ankiReviewDeck" class="select-field" :disabled="ankiDeckNames.length === 0 || !ankiConnected"> <option value="">-- All Decks --</option> <template x-for="deckName in ankiDeckNames" :key="deckName"> <option :value="deckName" x-text="deckName"></option> </template> </select> </div> <div class="self-end"> <button @click="fetchNextDueCard()" :disabled="ankiLoading || !ankiConnected" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2" title="Fetch Next Card (Enter)"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Fetch Next </button> </div> </div> <div x-show="currentReviewCard" class="mt-4 space-y-4" x-transition> <div> <label class="block text-sm font-medium text-gray-500 mb-1">Front:</label> <div class="anki-card-content" x-html="currentReviewCard?.front || 'Error loading front.'"></div> </div> <div x-show="showAnswer" x-transition.opacity> <label class="block text-sm font-medium text-gray-500 mb-1">Back:</label> <div class="anki-card-content" x-html="currentReviewCard?.back || 'Error loading back.'"></div> </div> <div class="flex justify-center mt-4 space-x-3"> <button x-show="!showAnswer" @click="showAnswer = true" class="px-5 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors" title="Show Answer (Space)"> Show Answer </button> <div x-show="showAnswer" class="flex flex-wrap justify-center gap-3" x-transition> <button @click="answerCard(1)" class="grade-button grade-button-again" title="Grade Again (1)">Again (1)</button> <button @click="answerCard(2)" class="grade-button grade-button-hard" title="Grade Hard (2)">Hard (2)</button> <button @click="answerCard(3)" class="grade-button grade-button-good" title="Grade Good (3)">Good (3)</button> <button @click="answerCard(4)" class="grade-button grade-button-easy" title="Grade Easy (4)">Easy (4)</button> </div> </div> </div> <div x-show="!currentReviewCard && !ankiLoading && ankiConnected && ankiReviewFeedback" class="text-center text-gray-500 italic mt-4 action-feedback" x-text="ankiReviewFeedback"> </div> <div x-show="!ankiConnected && ankiStatusCheckComplete" class="text-center text-red-500 italic mt-4"> Connect to Anki to start reviewing. </div> </div>
+                <div class="max-w-lg mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
+                    <div class="space-y-4"> <h3 class="text-lg font-medium text-gray-700 border-b pb-2">Management</h3> <button @click="ankiAction('sync')" :disabled="ankiLoading || !ankiConnected" class="w-full px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m0 0a9 9 0 0 1 9-9m-9 9a9 9 0 0 0 9 9"/></svg> Sync Collection </button> <button @click="fetchDeckNames()" :disabled="ankiLoading || !ankiConnected" class="w-full px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m0 0a9 9 0 0 1 9-9m-9 9a9 9 0 0 0 9 9"/></svg> Refresh Deck Names </button>
+                    <div class="pt-2">
+                        <label for="anki-stats-deck-select" class="block text-sm font-medium text-gray-700 mb-1">Deck for Stats:</label>
+                        <div class="flex gap-2">
+                            <select id="anki-stats-deck-select" x-model="ankiStatsDeck" class="select-field flex-grow" :disabled="ankiDeckNames.length === 0 || !ankiConnected"> <option value="">-- Select Deck --</option> <template x-for="deckName in ankiDeckNames" :key="deckName"> <option :value="deckName" x-text="deckName"></option> </template> </select>
+                            <button @click="getAndFormatDeckStats()" :disabled="ankiLoading || !ankiConnected || !ankiStatsDeck" class="px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"> Get Stats </button>
+                        </div>
+                        <div x-show="ankiFormattedStats && ankiFormattedStats.deckName === ankiStatsDeck" class="mt-3 bg-gray-50 p-3 rounded-md border border-gray-200" x-transition> <h4 class="text-sm font-medium text-center mb-2" x-text="`Stats for: ${ankiFormattedStats?.deckName ?? 'N/A'}`"></h4> <div class="anki-stats-grid"> <div class="anki-stat-item"> <span class="anki-stat-label">Total</span> <span class="anki-stat-value" x-text="ankiFormattedStats?.total ?? 0"></span> </div> <div class="anki-stat-item"> <span class="anki-stat-label">New</span> <span class="anki-stat-value" x-text="ankiFormattedStats?.new ?? 0"></span> </div> <div class="anki-stat-item"> <span class="anki-stat-label">Learning</span> <span class="anki-stat-value" x-text="ankiFormattedStats?.learn ?? 0"></span> </div> <div class="anki-stat-item"> <span class="anki-stat-label">Due</span> <span class="anki-stat-value" x-text="ankiFormattedStats?.due ?? 0"></span> </div> </div> </div>
+                    </div>
+                    <div class="pt-2"> <label for="anki-gui-deck-select" class="block text-sm font-medium text-gray-700 mb-1">Deck to Open in Anki:</label> <select id="anki-gui-deck-select" x-model="ankiGuiDeck" class="select-field mb-2" :disabled="ankiDeckNames.length === 0 || !ankiConnected"> <option value="">-- Select Deck --</option> <template x-for="deckName in ankiDeckNames" :key="deckName"> <option :value="deckName" x-text="deckName"></option> </template> </select> <button @click="openDeckForReview()" :disabled="ankiLoading || !ankiConnected || !ankiGuiDeck" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Open in Anki </button> </div>
+                    <div class="bg-gray-50 p-3 rounded-md min-h-[80px] border border-gray-200 mt-4"> <p class="text-sm font-medium text-gray-700 mb-1">Status:</p> <div x-show="ankiLoading && !currentReviewCard" class="text-sm text-yellow-600 animate-pulse">Loading...</div> <div x-show="!ankiLoading && ankiError" class="text-sm text-red-600 break-words" x-text="ankiError"></div> <div x-show="!ankiLoading && !ankiError && ankiConnected" class="text-sm text-green-600">Connected to Anki.</div> <div x-show="!ankiLoading && !ankiError && !ankiConnected" class="text-sm text-gray-500">Disconnected.</div> </div> </div>
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-700 border-b pb-2">Add New Note (Basic)</h3>
+                         <div class="space-y-3">
+                             <div>
+                                 <label for="anki-add-deck-select" class="block text-sm font-medium text-gray-700 mb-1">Deck Name</label>
+                                 <select id="anki-add-deck-select" x-model="newNoteDeck" class="select-field" :disabled="ankiDeckNames.length === 0 || !ankiConnected">
+                                     <option value="">-- Select Deck --</option>
+                                     <template x-for="deckName in ankiDeckNames" :key="deckName">
+                                         <option :value="deckName" x-text="deckName"></option>
+                                     </template>
+                                 </select>
+                             </div>
+                             <div> <label for="anki-front" class="block text-sm font-medium text-gray-700 mb-1">Front</label> <textarea id="anki-front" x-model="newNoteFront" rows="2" placeholder="Term or Question" class="input-field"></textarea> </div>
+                             <div> <label for="anki-back" class="block text-sm font-medium text-gray-700 mb-1">Back</label> <textarea id="anki-back" x-model="newNoteBack" rows="2" placeholder="Definition or Answer" class="input-field"></textarea> </div>
+                             <div> <label for="anki-tags" class="block text-sm font-medium text-gray-700 mb-1">Tags (Optional, space-separated)</label> <input type="text" id="anki-tags" x-model="newNoteTags" placeholder="e.g., vocab study" class="input-field"> </div>
+                             <button @click="addAnkiNote()" :disabled="ankiLoading || !ankiConnected || !newNoteDeck || !newNoteFront.trim()" class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Note </button>
+                             <div x-show="ankiActionFeedback" class="text-center text-sm action-feedback" :class="ankiActionSuccess ? 'text-green-600' : 'text-red-600'" x-text="ankiActionFeedback"></div>
+                         </div>
+                         <div class="bg-gray-50 p-3 rounded-md min-h-[100px] border border-gray-200 mt-4"> <p class="text-sm font-medium text-gray-700 mb-1">Last Raw Result:</p> <pre x-show="ankiResult && !ankiError" class="text-xs text-gray-800 whitespace-pre-wrap break-all bg-white p-2 border rounded max-h-48 overflow-y-auto" x-text="JSON.stringify(ankiResult, null, 2)"></pre> <p x-show="!ankiResult && !ankiError" class="text-sm text-gray-500 italic">No results yet.</p> <p x-show="ankiError" class="text-sm text-red-600 italic">An error occurred.</p> </div>
+                    </div>
+                </div>
+            </div>
+
+             <div x-show="activeTab === 'settings'" x-transition.opacity.duration.300ms>
+                 <h2 class="text-xl font-semibold mb-6 text-center text-blue-600">Settings</h2>
+                 <div class="max-w-md mx-auto space-y-6">
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="font-medium text-indigo-600 mb-3">Pomodoro Timer</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div> <label for="pomodoroWork" class="block text-sm font-medium text-gray-700 mb-1">Work Duration (min)</label> <input type="number" id="pomodoroWork" x-model.number="settings.pomodoroWork" min="1" max="120" class="input-field"> </div>
+                            <div> <label for="pomodoroBreak" class="block text-sm font-medium text-gray-700 mb-1">Break Duration (min)</label> <input type="number" id="pomodoroBreak" x-model.number="settings.pomodoroBreak" min="1" max="60" class="input-field"> </div>
+                        </div>
+                         <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Progress Display Style</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="pomodoroStyle" value="linear" x-model="settings.pomodoroStyle" class="form-radio h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                    <span>Linear Bar</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="pomodoroStyle" value="circular" x-model="settings.pomodoroStyle" class="form-radio h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                    <span>Circular</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                             <label for="alarmDuration" class="block text-sm font-medium text-gray-700 mb-1">Alarm Duration (seconds)</label>
+                             <select id="alarmDuration" x-model.number="settings.pomodoroAlarmDuration" class="select-field">
+                                 <option value="3">3 seconds</option>
+                                 <option value="5">5 seconds</option>
+                             </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Progress Bar Icon</label>
+                            <div class="flex flex-wrap gap-3 items-center mb-3">
+                                <div @click="settings.pomodoroIconId = 'none'" :class="{ 'selected': settings.pomodoroIconId === 'none' }" class="icon-option border-dashed border-gray-400" title="None"> <span class="text-gray-400 text-xs">None</span> </div>
+                                <template x-for="icon in settings.pomodoroCustomIcons" :key="icon.id">
+                                     <div @click="settings.pomodoroIconId = icon.id" :class="{ 'selected': settings.pomodoroIconId === icon.id }" class="icon-option relative group" :title="icon.name">
+                                         <img :src="icon.dataUrl" :alt="icon.name" class="w-full h-full object-contain">
+                                         <button @click.stop="deleteCustomPomodoroIcon(icon.id)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Icon">&times;</button>
+                                     </div>
+                                </template>
+                            </div>
+                             <div>
+                                <label for="customIconUpload" class="block text-sm font-medium text-gray-700 mb-1">Upload New Icon:</label>
+                                <input type="file" id="customIconUpload" @change="handleCustomIconUpload($event)" accept="image/png, image/svg+xml, image/jpeg, image/gif" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                                <p class="text-xs text-gray-500 mt-1">Recommended: 32x32 pixels (PNG, SVG, JPG, GIF). Stored locally.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200"> <h3 class="font-medium text-orange-600 mb-2">Weather & AQI</h3> <label for="weatherApiKey" class="block text-sm font-medium text-gray-700 mb-1">OpenWeatherMap API Key</label> <input type="password" id="weatherApiKey" x-model="settings.apiKeyWeather" placeholder="Enter your API key" class="input-field"> <p class="text-xs text-gray-500 mt-1"> Required for weather/AQI data. Get one from <a href="https://openweathermap.org/appid" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">OpenWeatherMap</a>. Key is stored locally. </p> </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200"> <h3 class="font-medium text-cyan-600 mb-2">AnkiConnect</h3> <div class="mb-4"> <label for="ankiUrl" class="block text-sm font-medium text-gray-700 mb-1">URL</label> <input type="text" id="ankiUrl" x-model="settings.ankiConnectUrl" placeholder="e.g., http://localhost:8765" class="input-field"> <p class="text-xs text-gray-500 mt-1">Default is usually correct. Only change if needed.</p> </div> <div> <label for="ankiApiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key (Optional)</label> <input type="password" id="ankiApiKey" x-model="settings.apiKeyAnki" placeholder="Enter key set in AnkiConnect config" class="input-field"> <p class="text-xs text-gray-500 mt-1">Required if you set an API key in the AnkiConnect add-on configuration within Anki.</p> </div> </div>
+                    <div x-show="settingsSaved" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 transform scale-100" x-transition:leave-end="opacity-0 transform scale-95" class="text-center text-green-600 font-medium saved-feedback"> Settings saved! </div>
+                 </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function dashboardApp() {
+            return {
+                // --- Tabs & Settings ---
+                activeTab: 'overview',
+                isMenuOpen: false,
+                settings: {
+                    apiKeyWeather: '',
+                    pomodoroWork: 25,
+                    pomodoroBreak: 5,
+                    pomodoroStyle: 'linear',
+                    pomodoroAlarmDuration: 3,
+                    pomodoroIconId: 'none',
+                    pomodoroCustomIcons: [],
+                    ankiConnectUrl: 'http://localhost:8765',
+                    apiKeyAnki: '',
+                },
+                settingsSaved: false,
+
+                // --- Pomodoro ---
+                timerMinutes: 0, timerSeconds: 0, isWorkMode: true, isRunning: false, intervalId: null, totalSecondsInSession: 0,
+
+                // --- ToDo ---
+                todos: [],
+                newTodo: '',
+                TODO_PRIORITIES: ['Low', 'Medium', 'High', 'Critical'],
+                TODO_STATUSES: ['ToDo', 'Doing', 'On Hold', 'Done'],
+                todoSortBy: 'createdAt',
+                todoSortAsc: true,
+
+                // --- AnkiConnect ---
+                ankiLoading: false, ankiResult: null, ankiError: null, ankiConnected: false, ankiStatusCheckComplete: false,
+                get ANKICONNECT_URL() { return this.settings.ankiConnectUrl || 'http://localhost:8765'; },
+                ankiDeckNames: [], ankiStatsDeck: '', ankiGuiDeck: '',
+                ankiFormattedStats: null,
+                newNoteDeck: '',
+                newNoteModel: 'Basic', newNoteFront: '', newNoteBack: '', newNoteTags: '',
+                ankiActionFeedback: '', ankiActionSuccess: false,
+                // --- Review State ---
+                ankiReviewDeck: '',
+                ankiReviewType: 'due',
+                currentReviewCard: null,
+                showAnswer: false,
+                ankiReviewAttempted: false,
+                ankiReviewFeedback: '',
+
+                // --- Weather ---
+                weatherData: null, weatherLoading: false, weatherError: null, BANGKOK_LAT: 13.7563, BANGKOK_LON: 100.5018,
+
+                // --- Study Tab State ---
+                studyNotes: '', // New state for persistent notes
+
+                // --- Initialization ---
+                init() {
+                    console.log('Dashboard initializing...');
+                    // Load settings
+                    const savedSettings = localStorage.getItem('alpineSettings'); if (savedSettings) { try { const parsedSettings = JSON.parse(savedSettings); this.settings = { apiKeyWeather: '', pomodoroWork: 25, pomodoroBreak: 5, pomodoroStyle: 'linear', pomodoroAlarmDuration: 3, pomodoroIconId: 'none', pomodoroCustomIcons: [], ankiConnectUrl: 'http://localhost:8765', apiKeyAnki: '', ...parsedSettings }; if (!Array.isArray(this.settings.pomodoroCustomIcons)) { this.settings.pomodoroCustomIcons = []; } delete this.settings.pomodoroIcon; console.log('Loaded settings:', this.settings); } catch (e) { console.error("Error parsing settings", e); localStorage.removeItem('alpineSettings'); } }
+                    // Load todos
+                    const savedTodos = localStorage.getItem('alpineTodos');
+                    if (savedTodos) {
+                        try {
+                            const parsedTodos = JSON.parse(savedTodos);
+                            this.todos = parsedTodos.map(todo => ({
+                                id: todo.id || Date.now(), text: todo.text || '', completed: todo.completed || false,
+                                createdAt: todo.createdAt || Date.now(), completedAt: todo.completedAt || null,
+                                priority: this.TODO_PRIORITIES.includes(todo.priority) ? todo.priority : 'Medium',
+                                status: this.TODO_STATUSES.includes(todo.status) ? todo.status : (todo.completed ? 'Done' : 'ToDo'),
+                            }));
+                        } catch (e) { console.error("Error parsing todos", e); localStorage.removeItem('alpineTodos'); this.todos = []; }
+                    } else { this.todos = []; }
+                    // Load study notes
+                    this.studyNotes = localStorage.getItem('studyNotes') || '';
+
+                    // Watchers
+                    this.$watch('settings', (newSettings) => { localStorage.setItem('alpineSettings', JSON.stringify(newSettings)); console.log('Settings saved.'); this.settingsSaved = true; setTimeout(() => { this.settingsSaved = false; }, 2000); if (!this.isRunning) { this.resetTimerValues(); } }, { deep: true });
+                    this.$watch('todos', (newTodos) => { localStorage.setItem('alpineTodos', JSON.stringify(newTodos)); }, { deep: true });
+                    this.$watch('studyNotes', (newNotes) => { localStorage.setItem('studyNotes', newNotes); }); // Save study notes
+
+                    // --- Pomodoro Resume Logic ---
+                    const storedPomodoroState = localStorage.getItem('pomodoroState');
+                    if (storedPomodoroState) {
+                        try {
+                            const state = JSON.parse(storedPomodoroState);
+                            const now = Date.now();
+                            if (state.endTime && state.isRunning && now < state.endTime) {
+                                console.log("Resuming running Pomodoro timer...");
+                                this.isRunning = true; this.isWorkMode = state.isWorkMode; this.totalSecondsInSession = state.totalSeconds;
+                                const remainingMilliseconds = state.endTime - now; const remainingSecondsTotal = Math.ceil(remainingMilliseconds / 1000);
+                                this.timerMinutes = Math.floor(remainingSecondsTotal / 60); this.timerSeconds = remainingSecondsTotal % 60;
+                                this.runTimerInterval();
+                            } else if (state.endTime && state.isRunning && now >= state.endTime) {
+                                console.log("Pomodoro timer finished while closed.");
+                                this.isWorkMode = state.isWorkMode; localStorage.removeItem('pomodoroState');
+                                this.playNotificationSound(this.settings.pomodoroAlarmDuration || 3);
+                                this.switchMode(true);
+                            } else if (!state.isRunning && state.remainingMins !== undefined) {
+                                console.log("Loading paused Pomodoro state...");
+                                this.isRunning = false; this.isWorkMode = state.isWorkMode; this.totalSecondsInSession = state.totalSeconds;
+                                this.timerMinutes = state.remainingMins; this.timerSeconds = state.remainingSecs;
+                            } else { localStorage.removeItem('pomodoroState'); this.resetTimerValues(); }
+                        } catch (e) { console.error("Error parsing Pomodoro state", e); localStorage.removeItem('pomodoroState'); this.resetTimerValues(); }
+                    } else { this.resetTimerValues(); }
+
+                    this.checkAnkiStatus().then(connected => { if (connected) { this.fetchDeckNames(); } });
+                    if (this.settings.apiKeyWeather) { this.fetchWeatherAndAQI(); } else { console.log("Weather API Key missing, skipping initial fetch."); }
+                    console.log('Dashboard initialized.');
+                },
+
+                // --- Tab Methods ---
+                setActiveTab(tab) { this.activeTab = tab; this.isMenuOpen = false; this.clearActionFeedback(); this.ankiError = null; this.ankiReviewFeedback = ''; },
+
+                // --- Computed Properties ---
+                get pendingTodosCount() { return this.todos.filter(todo => todo.status !== 'Done').length; },
+                get criticalTodosCount() { return this.todos.filter(todo => todo.status !== 'Done' && todo.priority === 'Critical').length; },
+                get overviewTodos() {
+                    const todosArray = Array.isArray(this.todos) ? this.todos : [];
+                    const pendingTodos = todosArray.filter(todo => todo.status !== 'Done');
+                    const priorityMap = { 'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4 };
+                    const sortedTasks = pendingTodos.sort((a, b) => {
+                        const priorityDiff = (priorityMap[b.priority] || 0) - (priorityMap[a.priority] || 0);
+                        if (priorityDiff !== 0) return priorityDiff;
+                        return b.createdAt - a.createdAt;
+                    });
+                    return sortedTasks.slice(0, 5);
+                },
+                 get sortedTodos() {
+                    const todosArray = Array.isArray(this.todos) ? this.todos : [];
+                    const priorityMap = { 'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4 };
+                    return [...todosArray].sort((a, b) => {
+                        let comparison = 0;
+                        if (this.todoSortBy === 'priority') {
+                            comparison = (priorityMap[b.priority] || 0) - (priorityMap[a.priority] || 0);
+                        } else { comparison = a.createdAt - b.createdAt; }
+                        return this.todoSortAsc ? comparison : (comparison * -1);
+                    });
+                },
+                 get timerProgress() {
+                    if (this.totalSecondsInSession === 0) return 0;
+                    const elapsedSeconds = this.totalSecondsInSession - (this.timerMinutes * 60 + this.timerSeconds);
+                    const progress = (elapsedSeconds / this.totalSecondsInSession) * 100;
+                    return Math.max(0, Math.min(100, progress));
+                },
+                get selectedPomodoroIconDataUrl() {
+                    if (this.settings.pomodoroIconId === 'none' || !this.settings.pomodoroCustomIcons) {
+                        return null;
+                    }
+                    const selectedIcon = this.settings.pomodoroCustomIcons.find(icon => icon.id === this.settings.pomodoroIconId);
+                    return selectedIcon ? selectedIcon.dataUrl : null;
+                },
+
+                // --- Pomodoro Methods ---
+                startTimer() {
+                    if (this.isRunning) return;
+                    this.isRunning = true;
+                    const durationMinutes = this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak;
+                    const now = Date.now();
+                    const endTime = now + durationMinutes * 60 * 1000;
+                    this.totalSecondsInSession = durationMinutes * 60;
+                    localStorage.setItem('pomodoroState', JSON.stringify({ endTime: endTime, isRunning: true, isWorkMode: this.isWorkMode, totalSeconds: this.totalSecondsInSession }));
+                    this.timerMinutes = durationMinutes; this.timerSeconds = 0;
+                    this.runTimerInterval();
+                },
+                 runTimerInterval() {
+                     if (this.intervalId) clearInterval(this.intervalId);
+                     this.intervalId = setInterval(() => {
+                        const storedState = JSON.parse(localStorage.getItem('pomodoroState') || '{}');
+                        const endTime = storedState.endTime;
+                        if (!this.isRunning || !endTime) { this.pauseTimer(); return; }
+                        const now = Date.now();
+                        const remainingMilliseconds = endTime - now;
+                        if (remainingMilliseconds <= 0) {
+                            this.timerMinutes = 0; this.timerSeconds = 0; this.pauseTimer(); localStorage.removeItem('pomodoroState');
+                            this.playNotificationSound(this.settings.pomodoroAlarmDuration || 3);
+                            setTimeout(() => { this.switchMode(true); }, (this.settings.pomodoroAlarmDuration || 3) * 1000);
+                        } else {
+                            const remainingSecondsTotal = Math.ceil(remainingMilliseconds / 1000);
+                            this.timerMinutes = Math.floor(remainingSecondsTotal / 60); this.timerSeconds = remainingSecondsTotal % 60;
+                            this.totalSecondsInSession = (this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak) * 60;
+                        }
+                    }, 1000);
+                 },
+                pauseTimer() {
+                    if (!this.isRunning) return; this.isRunning = false; if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+                     const storedState = JSON.parse(localStorage.getItem('pomodoroState') || '{}');
+                     if(storedState.endTime) { localStorage.setItem('pomodoroState', JSON.stringify({ ...storedState, isRunning: false, remainingMins: this.timerMinutes, remainingSecs: this.timerSeconds })); }
+                    console.log("Timer paused");
+                },
+                 resetTimerValues() { this.timerMinutes = this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak; this.timerSeconds = 0; if (this.timerMinutes < 1) this.timerMinutes = 1; this.totalSecondsInSession = this.timerMinutes * 60; },
+                resetTimer() { this.pauseTimer(); localStorage.removeItem('pomodoroState'); this.resetTimerValues(); console.log("Timer reset"); },
+                switchMode(autoSwitch = false) { if (this.isRunning && !autoSwitch) return; this.pauseTimer(); localStorage.removeItem('pomodoroState'); this.isWorkMode = !this.isWorkMode; this.resetTimerValues(); if (autoSwitch) { this.startTimer(); } },
+                playNotificationSound(durationSeconds = 3) { /* ... (Unchanged) ... */ },
+                handleCustomIconUpload(event) { /* ... (Unchanged) ... */ },
+                deleteCustomPomodoroIcon(iconId) { /* ... (Unchanged) ... */ },
+
+                // --- ToDo Methods ---
+                addTodo() { if (this.newTodo.trim() === '') return; this.todos.push({ id: Date.now(), text: this.newTodo.trim(), completed: false, createdAt: Date.now(), completedAt: null, priority: 'Medium', status: 'ToDo' }); this.newTodo = ''; },
+                findTodoIndexById(id) { return this.todos.findIndex(todo => todo.id === id); },
+                toggleTodoComplete(id) { const index = this.findTodoIndexById(id); if (index === -1) return; this.todos[index].completed = !this.todos[index].completed; if (this.todos[index].completed) { this.todos[index].completedAt = Date.now(); this.todos[index].status = 'Done'; } else { this.todos[index].completedAt = null; if(this.todos[index].status === 'Done') { this.todos[index].status = 'ToDo'; } } },
+                updateTodoStatus(id, newStatus) { const index = this.findTodoIndexById(id); if (index === -1) return; this.todos[index].status = newStatus; if (newStatus === 'Done') { if (!this.todos[index].completed) { this.todos[index].completed = true; this.todos[index].completedAt = Date.now(); } } else { if (this.todos[index].completed) { this.todos[index].completed = false; this.todos[index].completedAt = null; } } },
+                updateTodo(id) { const index = this.findTodoIndexById(id); if (index !== -1) console.log("Todo updated:", this.todos[index]); },
+                deleteTodo(id) { const index = this.findTodoIndexById(id); if (index !== -1) { this.todos.splice(index, 1); } },
+                formatTimestamp(timestamp) { if (!timestamp) return ''; try { return new Date(timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); } catch (e) { console.error("Error formatting timestamp:", e); return 'Invalid Date'; } },
+                getPriorityClass(priority) { switch (priority) { case 'Low': return 'priority-low'; case 'Medium': return 'priority-medium'; case 'High': return 'priority-high'; case 'Critical': return 'priority-critical'; default: return 'bg-gray-100 text-gray-800'; } },
+                getStatusClass(status) { switch (status) { case 'ToDo': return 'status-todo'; case 'Doing': return 'status-doing'; case 'On Hold': return 'status-onhold'; case 'Done': return 'status-done'; default: return 'bg-gray-100 text-gray-800'; } },
+
+                // --- AnkiConnect Methods ---
+                buildAnkiPayload(action, params = {}) { const payload = { action: action, version: 6, params: params }; if (this.settings.apiKeyAnki) { payload.key = this.settings.apiKeyAnki; } return payload; },
+                clearActionFeedback() { this.ankiActionFeedback = ''; this.ankiActionSuccess = false; this.ankiReviewFeedback = ''; },
+                showActionFeedback(message, success) { this.ankiActionFeedback = message; this.ankiActionSuccess = success; setTimeout(() => { this.clearActionFeedback(); }, 4000); },
+                async checkAnkiStatus() { this.ankiLoading = true; this.ankiConnected = false; this.ankiError = null; let connected = false; try { const payload = this.buildAnkiPayload("version"); const response = await fetch(this.ANKICONNECT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(3000) }); if (!response.ok) throw new Error(`HTTP status ${response.status}`); const data = await response.json(); if (data.error) throw new Error(data.error); this.ankiConnected = true; connected = true; console.log("AnkiConnect check successful. Version:", data.result); } catch (error) { this.ankiConnected = false; console.error('AnkiConnect initial check failed:', error.message); } finally { this.ankiLoading = false; this.ankiStatusCheckComplete = true; return connected; } },
+                async ankiAction(action, params = {}, feedbackMsg = null) { this.clearActionFeedback(); if (action !== 'version' && !this.ankiConnected) { const isConnected = await this.checkAnkiStatus(); if (!isConnected) { this.ankiError = "Cannot perform action: AnkiConnect is not connected."; this.ankiResult = null; this.showActionFeedback("Connection failed.", false); return null; } } this.ankiLoading = true; this.ankiResult = null; this.ankiError = null; console.log(`Calling AnkiConnect action: ${action} with params:`, params); try { const payload = this.buildAnkiPayload(action, params); console.log("Sending payload:", payload); const response = await fetch(this.ANKICONNECT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) }); if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); } const data = await response.json(); console.log("Received data:", data); if (data.error) { throw new Error(`AnkiConnect error: ${data.error}`); } this.ankiResult = data.result; this.ankiConnected = true; if (feedbackMsg) { this.showActionFeedback(feedbackMsg, true); } else if (action === 'sync') { this.showActionFeedback("Sync successful!", true); } else if (action === 'addNote') { this.showActionFeedback("Note added successfully!", true); this.newNoteFront = ''; this.newNoteBack = ''; this.newNoteTags = ''; } else if (action === 'guiDeckReview') { this.showActionFeedback("Opened deck in Anki.", true); } else if (action === 'answerCards') { this.showActionFeedback("Card graded!", true); } else if (action === 'deckNames') { this.showActionFeedback("Deck names refreshed!", true); } else if (action === 'getDeckStats') { this.showActionFeedback("Stats fetched!", true); } return data.result; } catch (error) { console.error('AnkiConnect request failed:', error); const errorMsg = `Action failed: ${error.message}.`; this.ankiError = errorMsg + " Check Anki/AnkiConnect & API Key."; this.ankiResult = null; this.ankiConnected = false; this.showActionFeedback(errorMsg, false); return null; } finally { this.ankiLoading = false; } },
+                async fetchDeckNames() { const names = await this.ankiAction('deckNames'); if (names !== null) { this.ankiDeckNames = names.sort(); console.log("Fetched deck names:", this.ankiDeckNames); if (!this.ankiDeckNames.includes(this.ankiReviewDeck)) this.ankiReviewDeck = ''; if (!this.ankiDeckNames.includes(this.ankiStatsDeck)) this.ankiStatsDeck = ''; if (!this.ankiDeckNames.includes(this.ankiGuiDeck)) this.ankiGuiDeck = ''; if (!this.ankiDeckNames.includes(this.newNoteDeck)) this.newNoteDeck = ''; } },
+                addAnkiNote() { if (!this.newNoteDeck) { this.showActionFeedback("Please select a deck first.", false); return; } if (!this.newNoteFront.trim()) { this.showActionFeedback("Front field is required.", false); return; } const noteData = { deckName: this.newNoteDeck, modelName: this.newNoteModel, fields: { "Front": this.newNoteFront.trim(), "Back": this.newNoteBack.trim() }, options: { allowDuplicate: false }, tags: this.newNoteTags.trim() ? this.newNoteTags.trim().split(/\s+/) : [] }; this.ankiAction('addNote', { note: noteData }); },
+                openDeckForReview() { if (!this.ankiGuiDeck) { this.showActionFeedback("Please select a deck to open.", false); return; } this.ankiAction('guiDeckReview', { name: this.ankiGuiDeck }); },
+                async getAndFormatDeckStats() { if (!this.ankiStatsDeck) { this.showActionFeedback("Please select a deck to get stats for.", false); return; } const rawStats = await this.ankiAction('getDeckStats', { decks: [this.ankiStatsDeck] }); if (rawStats) { const deckId = Object.keys(rawStats)[0]; if (deckId && rawStats[deckId]) { const stats = rawStats[deckId]; this.ankiFormattedStats = { deckName: stats.name, total: stats.total_in_deck || 0, new: stats.new_count || 0, learn: stats.learn_count || 0, due: (stats.review_count || 0) + (stats.relearn_count || 0) }; console.log("Formatted stats:", this.ankiFormattedStats); } else { this.showActionFeedback("Could not parse stats from response.", false); this.ankiFormattedStats = null; } } else { this.ankiFormattedStats = null; } },
+
+                // --- Review Methods ---
+                async fetchNextDueCard() {
+                    this.currentReviewCard = null; this.showAnswer = false; this.ankiReviewAttempted = true; this.clearActionFeedback(); this.ankiReviewFeedback = '';
+                    let query = '';
+                    switch (this.ankiReviewType) {
+                        case 'new': query = 'is:new'; break;
+                        case 'learn': query = 'is:learn'; break;
+                        case 'due': default: query = 'is:due'; break;
+                    }
+                    if (this.ankiReviewDeck) { query += ` deck:"${this.ankiReviewDeck}"`; }
+                    const cardIds = await this.ankiAction('findCards', { query: query });
+                    if (cardIds && cardIds.length > 0) {
+                        const cardId = cardIds[0]; console.log("Found card ID:", cardId);
+                        const cardInfoResult = await this.ankiAction('cardsInfo', { cards: [cardId] });
+                        if (cardInfoResult && cardInfoResult.length > 0) {
+                            const cardData = cardInfoResult[0];
+                            this.currentReviewCard = { id: cardData.cardId, front: cardData.fields.Front?.value || '[Error: Front field missing]', back: cardData.fields.Back?.value || '[Error: Back field missing]' };
+                            console.log("Fetched card info:", this.currentReviewCard);
+                        } else { this.showActionFeedback("Failed to fetch card details.", false); }
+                    } else if (cardIds !== null) {
+                        this.ankiReviewFeedback = `No ${this.ankiReviewType} cards found in the selected deck.`; this.currentReviewCard = null;
+                        setTimeout(() => { this.ankiReviewFeedback = ''; this.ankiReviewAttempted = false; }, 5000);
+                    }
+                },
+                async answerCard(ease) { if (!this.currentReviewCard) return; const cardId = this.currentReviewCard.id; console.log(`Answering card ${cardId} with ease ${ease}`); const success = await this.ankiAction('answerCards', { answers: [{ cardId: cardId, ease: ease }] }); if (success !== null) { this.currentReviewCard = null; this.showAnswer = false; this.ankiReviewAttempted = false; this.fetchNextDueCard(); } },
+
+                // --- Keyboard Shortcut Handler ---
+                 handleGlobalKeydown(event) {
+                     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') { return; }
+                     // Check if Study OR Anki tab is active
+                     if (this.activeTab !== 'anki' && this.activeTab !== 'study') return;
+                     if (this.currentReviewCard) {
+                         if (event.code === 'Space' && !this.showAnswer) { event.preventDefault(); this.showAnswer = true; console.log('Keyboard: Show Answer'); }
+                         else if (this.showAnswer && ['1', '2', '3', '4'].includes(event.key)) { event.preventDefault(); console.log(`Keyboard: Grade ${event.key}`); this.answerCard(parseInt(event.key)); }
+                     } else {
+                          if (event.key === 'Enter') { event.preventDefault(); console.log('Keyboard: Fetch Next'); this.fetchNextDueCard(); }
+                     }
+                 },
+
+                 // --- Weather & AQI Methods ---
+                async fetchWeatherAndAQI() { if (!this.settings.apiKeyWeather) { this.weatherError = "API Key not set. Please configure in Settings."; this.weatherData = null; return; } this.weatherLoading = true; this.weatherError = null; this.weatherData = null; console.log("Attempting to fetch weather/AQI (using placeholder)..."); try { await new Promise(resolve => setTimeout(resolve, 1000)); if (!this.settings.apiKeyWeather.startsWith('FAKE_')) { const simulatedWeatherData = { temp: 31.5, description: "Partly cloudy" }; const simulatedAqiData = { aqi: 78 }; this.weatherData = { temp: Math.round(simulatedWeatherData.temp), description: simulatedWeatherData.description, aqi: simulatedAqiData.aqi, }; console.log("Placeholder weather data loaded:", this.weatherData); } else { throw new Error("Using placeholder API Key."); } } catch (error) { console.error("Failed to fetch weather/AQI:", error); this.weatherError = `Failed to load weather: ${error.message}`; this.weatherData = null; } finally { this.weatherLoading = false; } },
+                getAqiMeaning(aqiValue) { if (aqiValue === null || aqiValue === undefined) return 'N/A'; if (aqiValue <= 50) return 'Good'; if (aqiValue <= 100) return 'Moderate'; if (aqiValue <= 150) return 'Unhealthy for Sensitive Groups'; if (aqiValue <= 200) return 'Unhealthy'; if (aqiValue <= 300) return 'Very Unhealthy'; return 'Hazardous'; },
+                getWeatherEmoji(description) { if (!description) return '<?> '; const descLower = description.toLowerCase(); if (descLower.includes('clear')) return '☀️ '; if (descLower.includes('few clouds')) return '🌤️ '; if (descLower.includes('scattered clouds')) return '☁️ '; if (descLower.includes('broken clouds') || descLower.includes('overcast')) return '🌥️ '; if (descLower.includes('shower rain') || descLower.includes('rain')) return '🌧️ '; if (descLower.includes('thunderstorm')) return '⛈️ '; if (descLower.includes('snow')) return '❄️ '; if (descLower.includes('mist') || descLower.includes('fog')) return '🌫️ '; return ''; }
+
+            }
+        }
+    </script>
+
+</body>
+</html>
