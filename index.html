@@ -40,8 +40,8 @@
         .saved-feedback, .action-feedback { transition: opacity 0.5s ease-out; margin-top: 0.5rem; }
 
         /* Anki Card Display */
-        .anki-card-content { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; min-height: 80px; background-color: #f9fafb; overflow-y: auto; max-height: 200px; }
-        .anki-card-content img { max-width: 100%; height: auto; }
+        .anki-card-content { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; min-height: 80px; background-color: #f9fafb; overflow-y: auto; max-height: 200px; word-wrap: break-word; }
+        .anki-card-content img { max-width: 100%; height: auto; display: block; margin: 0.5rem auto; }
 
         /* Grade Button Styling */
         .grade-button { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; transition: background-color 0.2s, border-color 0.2s, color 0.2s; border: 1px solid transparent; }
@@ -253,10 +253,10 @@
                          </div>
 
                          <div class="lg:col-span-1 bg-gray-50 p-4 rounded-lg border flex flex-col">
-                             <h3 class="text-lg font-medium text-purple-600 mb-3 text-center">Scratchpad</h3>
+                             <h3 class="text-lg font-medium text-purple-600 mb-3 text-center">Quick Notes</h3>
                              <textarea
                                 x-model="studyNotes"
-                                placeholder="Write down quick notes here...&#10;Notes are saved even after reloads"
+                                placeholder="Write down quick notes here...&#10;Notes are saved even after reloads."
                                 class="textarea-field flex-grow text-sm min-h-[200px]"
                              ></textarea>
                              <p class="text-xs text-gray-400 text-center mt-2">Notes are saved automatically.</p>
@@ -417,11 +417,17 @@
                                 <label for="customIconUpload" class="block text-sm font-medium text-gray-700 mb-1">Upload New Icon:</label>
                                 <input type="file" id="customIconUpload" @change="handleCustomIconUpload($event)" accept="image/png, image/svg+xml, image/jpeg, image/gif" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
                                 <p class="text-xs text-gray-500 mt-1">Recommended: 32x32 pixels (PNG, SVG, JPG, GIF). Stored locally.</p>
+                                <p x-show="iconUploadError" class="text-xs text-red-600 mt-1" x-text="iconUploadError"></p>
                             </div>
                         </div>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200"> <h3 class="font-medium text-orange-600 mb-2">Weather & AQI</h3> <label for="weatherApiKey" class="block text-sm font-medium text-gray-700 mb-1">OpenWeatherMap API Key</label> <input type="password" id="weatherApiKey" x-model="settings.apiKeyWeather" placeholder="Enter your API key" class="input-field"> <p class="text-xs text-gray-500 mt-1"> Required for weather/AQI data. Get one from <a href="https://openweathermap.org/appid" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">OpenWeatherMap</a>. Key is stored locally. </p> </div>
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200"> <h3 class="font-medium text-cyan-600 mb-2">AnkiConnect</h3> <div class="mb-4"> <label for="ankiUrl" class="block text-sm font-medium text-gray-700 mb-1">URL</label> <input type="text" id="ankiUrl" x-model="settings.ankiConnectUrl" placeholder="e.g., http://localhost:8765" class="input-field"> <p class="text-xs text-gray-500 mt-1">Default is usually correct. Only change if needed.</p> </div> <div> <label for="ankiApiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key (Optional)</label> <input type="password" id="ankiApiKey" x-model="settings.apiKeyAnki" placeholder="Enter key set in AnkiConnect config" class="input-field"> <p class="text-xs text-gray-500 mt-1"></p> </div> </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="font-medium text-cyan-600 mb-2">AnkiConnect</h3>
+                        <div class="mb-4"> <label for="ankiUrl" class="block text-sm font-medium text-gray-700 mb-1">Connect URL</label> <input type="text" id="ankiUrl" x-model="settings.ankiConnectUrl" placeholder="e.g., http://localhost:8765" class="input-field"> <p class="text-xs text-gray-500 mt-1">Default is usually correct.</p> </div>
+                        <div class="mb-4"> <label for="ankiMediaUrl" class="block text-sm font-medium text-gray-700 mb-1">Media Server URL (for Images)</label> <input type="text" id="ankiMediaUrl" x-model="settings.ankiMediaUrl" placeholder="e.g., http://localhost:8766" class="input-field"> <p class="text-xs text-gray-500 mt-1">Usually port 8766. Needed to display card images.</p> </div>
+                        <div> <label for="ankiApiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key (Optional)</label> <input type="password" id="ankiApiKey" x-model="settings.apiKeyAnki" placeholder="Enter key set in AnkiConnect config" class="input-field"> <p class="text-xs text-gray-500 mt-1"></p> </div>
+                    </div>
                     <div x-show="settingsSaved" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 transform scale-100" x-transition:leave-end="opacity-0 transform scale-95" class="text-center text-green-600 font-medium saved-feedback"> Settings saved! </div>
                  </div>
             </div>
@@ -443,9 +449,11 @@
                     pomodoroIconId: 'none',
                     pomodoroCustomIcons: [],
                     ankiConnectUrl: 'http://localhost:8765',
+                    ankiMediaUrl: 'http://localhost:8766',
                     apiKeyAnki: '',
                 },
                 settingsSaved: false,
+                iconUploadError: '', // For icon size warnings
 
                 // --- Pomodoro ---
                 timerMinutes: 0, timerSeconds: 0, isWorkMode: true, isRunning: false, intervalId: null, totalSecondsInSession: 0,
@@ -461,6 +469,7 @@
                 // --- AnkiConnect ---
                 ankiLoading: false, ankiResult: null, ankiError: null, ankiConnected: false, ankiStatusCheckComplete: false,
                 get ANKICONNECT_URL() { return this.settings.ankiConnectUrl || 'http://localhost:8765'; },
+                get ANKI_MEDIA_URL() { return this.settings.ankiMediaUrl || 'http://localhost:8766'; },
                 ankiDeckNames: [], ankiStatsDeck: '', ankiGuiDeck: '',
                 ankiFormattedStats: null,
                 newNoteDeck: '',
@@ -476,15 +485,33 @@
 
                 // --- Weather ---
                 weatherData: null, weatherLoading: false, weatherError: null, BANGKOK_LAT: 13.7563, BANGKOK_LON: 100.5018,
+                weatherIntervalId: null,
 
-                // --- Study Tab State ---
-                studyNotes: '', // New state for persistent notes
+                 // --- Study Tab State ---
+                studyNotes: '',
 
                 // --- Initialization ---
                 init() {
                     console.log('Dashboard initializing...');
                     // Load settings
-                    const savedSettings = localStorage.getItem('alpineSettings'); if (savedSettings) { try { const parsedSettings = JSON.parse(savedSettings); this.settings = { apiKeyWeather: '', pomodoroWork: 25, pomodoroBreak: 5, pomodoroStyle: 'linear', pomodoroAlarmDuration: 3, pomodoroIconId: 'none', pomodoroCustomIcons: [], ankiConnectUrl: 'http://localhost:8765', apiKeyAnki: '', ...parsedSettings }; if (!Array.isArray(this.settings.pomodoroCustomIcons)) { this.settings.pomodoroCustomIcons = []; } delete this.settings.pomodoroIcon; console.log('Loaded settings:', this.settings); } catch (e) { console.error("Error parsing settings", e); localStorage.removeItem('alpineSettings'); } }
+                    const savedSettings = localStorage.getItem('alpineSettings');
+                    if (savedSettings) {
+                        try {
+                            const parsedSettings = JSON.parse(savedSettings);
+                            this.settings = {
+                                apiKeyWeather: '', pomodoroWork: 25, pomodoroBreak: 5,
+                                pomodoroStyle: 'linear', pomodoroAlarmDuration: 3,
+                                pomodoroIconId: 'none', pomodoroCustomIcons: [],
+                                ankiConnectUrl: 'http://localhost:8765', ankiMediaUrl: 'http://localhost:8766', apiKeyAnki: '',
+                                ...parsedSettings
+                            };
+                            if (!Array.isArray(this.settings.pomodoroCustomIcons)) {
+                                this.settings.pomodoroCustomIcons = [];
+                            }
+                            delete this.settings.pomodoroIcon; // Clean up old setting if present
+                            console.log('Loaded settings:', this.settings);
+                        } catch (e) { console.error("Error parsing settings", e); localStorage.removeItem('alpineSettings'); }
+                    }
                     // Load todos
                     const savedTodos = localStorage.getItem('alpineTodos');
                     if (savedTodos) {
@@ -504,35 +531,14 @@
                     // Watchers
                     this.$watch('settings', (newSettings) => { localStorage.setItem('alpineSettings', JSON.stringify(newSettings)); console.log('Settings saved.'); this.settingsSaved = true; setTimeout(() => { this.settingsSaved = false; }, 2000); if (!this.isRunning) { this.resetTimerValues(); } }, { deep: true });
                     this.$watch('todos', (newTodos) => { localStorage.setItem('alpineTodos', JSON.stringify(newTodos)); }, { deep: true });
-                    this.$watch('studyNotes', (newNotes) => { localStorage.setItem('studyNotes', newNotes); }); // Save study notes
+                    this.$watch('studyNotes', (newNotes) => { localStorage.setItem('studyNotes', newNotes); });
 
-                    // --- Pomodoro Resume Logic ---
-                    const storedPomodoroState = localStorage.getItem('pomodoroState');
-                    if (storedPomodoroState) {
-                        try {
-                            const state = JSON.parse(storedPomodoroState);
-                            const now = Date.now();
-                            if (state.endTime && state.isRunning && now < state.endTime) {
-                                console.log("Resuming running Pomodoro timer...");
-                                this.isRunning = true; this.isWorkMode = state.isWorkMode; this.totalSecondsInSession = state.totalSeconds;
-                                const remainingMilliseconds = state.endTime - now; const remainingSecondsTotal = Math.ceil(remainingMilliseconds / 1000);
-                                this.timerMinutes = Math.floor(remainingSecondsTotal / 60); this.timerSeconds = remainingSecondsTotal % 60;
-                                this.runTimerInterval();
-                            } else if (state.endTime && state.isRunning && now >= state.endTime) {
-                                console.log("Pomodoro timer finished while closed.");
-                                this.isWorkMode = state.isWorkMode; localStorage.removeItem('pomodoroState');
-                                this.playNotificationSound(this.settings.pomodoroAlarmDuration || 3);
-                                this.switchMode(true);
-                            } else if (!state.isRunning && state.remainingMins !== undefined) {
-                                console.log("Loading paused Pomodoro state...");
-                                this.isRunning = false; this.isWorkMode = state.isWorkMode; this.totalSecondsInSession = state.totalSeconds;
-                                this.timerMinutes = state.remainingMins; this.timerSeconds = state.remainingSecs;
-                            } else { localStorage.removeItem('pomodoroState'); this.resetTimerValues(); }
-                        } catch (e) { console.error("Error parsing Pomodoro state", e); localStorage.removeItem('pomodoroState'); this.resetTimerValues(); }
-                    } else { this.resetTimerValues(); }
+                    // --- Pomodoro Resume Logic (Simplified - No persistence for now) ---
+                    this.resetTimerValues(); // Always reset on load for stability
 
                     this.checkAnkiStatus().then(connected => { if (connected) { this.fetchDeckNames(); } });
-                    if (this.settings.apiKeyWeather) { this.fetchWeatherAndAQI(); } else { console.log("Weather API Key missing, skipping initial fetch."); }
+                    this.fetchWeatherAndAQI(); // Initial fetch
+                    this.startWeatherAutoRefresh(); // Start timer for auto-refresh
                     console.log('Dashboard initialized.');
                 },
 
@@ -555,6 +561,7 @@
                 },
                  get sortedTodos() {
                     const todosArray = Array.isArray(this.todos) ? this.todos : [];
+                    if (!todosArray) return []; // Add safety check
                     const priorityMap = { 'Low': 1, 'Medium': 2, 'High': 3, 'Critical': 4 };
                     return [...todosArray].sort((a, b) => {
                         let comparison = 0;
@@ -582,45 +589,74 @@
                 startTimer() {
                     if (this.isRunning) return;
                     this.isRunning = true;
-                    const durationMinutes = this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak;
-                    const now = Date.now();
-                    const endTime = now + durationMinutes * 60 * 1000;
-                    this.totalSecondsInSession = durationMinutes * 60;
-                    localStorage.setItem('pomodoroState', JSON.stringify({ endTime: endTime, isRunning: true, isWorkMode: this.isWorkMode, totalSeconds: this.totalSecondsInSession }));
-                    this.timerMinutes = durationMinutes; this.timerSeconds = 0;
+                    this.totalSecondsInSession = (this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak) * 60;
+                     // Ensure timer starts from the full duration if it was reset or finished
+                     if (this.timerMinutes === 0 && this.timerSeconds === 0) {
+                         this.resetTimerValues();
+                         this.totalSecondsInSession = (this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak) * 60;
+                     } else if (this.timerMinutes !== (this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak)) {
+                        // If mode switched while paused, reset to new duration
+                        this.resetTimerValues();
+                        this.totalSecondsInSession = (this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak) * 60;
+                     }
+                     // No localStorage saving here anymore
                     this.runTimerInterval();
                 },
                  runTimerInterval() {
                      if (this.intervalId) clearInterval(this.intervalId);
                      this.intervalId = setInterval(() => {
-                        const storedState = JSON.parse(localStorage.getItem('pomodoroState') || '{}');
-                        const endTime = storedState.endTime;
-                        if (!this.isRunning || !endTime) { this.pauseTimer(); return; }
-                        const now = Date.now();
-                        const remainingMilliseconds = endTime - now;
-                        if (remainingMilliseconds <= 0) {
-                            this.timerMinutes = 0; this.timerSeconds = 0; this.pauseTimer(); localStorage.removeItem('pomodoroState');
+                        if (!this.isRunning) { // Stop if paused externally
+                            clearInterval(this.intervalId);
+                            this.intervalId = null;
+                            return;
+                        }
+                        if (this.timerSeconds > 0) { this.timerSeconds--; }
+                        else if (this.timerMinutes > 0) { this.timerMinutes--; this.timerSeconds = 59; }
+                        else { // Timer finished
+                            this.pauseTimer(); // Stop interval first
                             this.playNotificationSound(this.settings.pomodoroAlarmDuration || 3);
-                            setTimeout(() => { this.switchMode(true); }, (this.settings.pomodoroAlarmDuration || 3) * 1000);
-                        } else {
-                            const remainingSecondsTotal = Math.ceil(remainingMilliseconds / 1000);
-                            this.timerMinutes = Math.floor(remainingSecondsTotal / 60); this.timerSeconds = remainingSecondsTotal % 60;
-                            this.totalSecondsInSession = (this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak) * 60;
+                            setTimeout(() => {
+                                this.switchMode(true); // Switch mode and auto-start next
+                            }, (this.settings.pomodoroAlarmDuration || 3) * 1000);
                         }
                     }, 1000);
                  },
-                pauseTimer() {
-                    if (!this.isRunning) return; this.isRunning = false; if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
-                     const storedState = JSON.parse(localStorage.getItem('pomodoroState') || '{}');
-                     if(storedState.endTime) { localStorage.setItem('pomodoroState', JSON.stringify({ ...storedState, isRunning: false, remainingMins: this.timerMinutes, remainingSecs: this.timerSeconds })); }
-                    console.log("Timer paused");
-                },
-                 resetTimerValues() { this.timerMinutes = this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak; this.timerSeconds = 0; if (this.timerMinutes < 1) this.timerMinutes = 1; this.totalSecondsInSession = this.timerMinutes * 60; },
-                resetTimer() { this.pauseTimer(); localStorage.removeItem('pomodoroState'); this.resetTimerValues(); console.log("Timer reset"); },
-                switchMode(autoSwitch = false) { if (this.isRunning && !autoSwitch) return; this.pauseTimer(); localStorage.removeItem('pomodoroState'); this.isWorkMode = !this.isWorkMode; this.resetTimerValues(); if (autoSwitch) { this.startTimer(); } },
+                pauseTimer() { if (!this.isRunning) return; this.isRunning = false; if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; } console.log("Timer paused"); },
+                resetTimerValues() { this.timerMinutes = this.isWorkMode ? this.settings.pomodoroWork : this.settings.pomodoroBreak; this.timerSeconds = 0; if (this.timerMinutes < 1) this.timerMinutes = 1; this.totalSecondsInSession = this.timerMinutes * 60; },
+                resetTimer() { this.pauseTimer(); this.resetTimerValues(); console.log("Timer reset"); },
+                switchMode(autoSwitch = false) { if (this.isRunning && !autoSwitch) return; this.pauseTimer(); this.isWorkMode = !this.isWorkMode; this.resetTimerValues(); if (autoSwitch) { this.startTimer(); } },
                 playNotificationSound(durationSeconds = 3) { /* ... (Unchanged) ... */ },
-                handleCustomIconUpload(event) { /* ... (Unchanged) ... */ },
-                deleteCustomPomodoroIcon(iconId) { /* ... (Unchanged) ... */ },
+                 handleCustomIconUpload(event) {
+                     this.iconUploadError = ''; // Clear previous error
+                     const file = event.target.files[0];
+                     if (file && file.type.startsWith('image/')) {
+                         const MAX_SIZE_MB = 1;
+                         if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                              this.iconUploadError = `Icon file too large (Max ${MAX_SIZE_MB}MB).`;
+                              alert(this.iconUploadError);
+                              event.target.value = ''; return;
+                         }
+                         const reader = new FileReader();
+                         reader.onload = (e) => {
+                             const dataUrl = e.target.result;
+                             // Optional: Check data URL length as a proxy for size in localStorage
+                             if (dataUrl.length > MAX_SIZE_MB * 1024 * 1024 * 1.4) { // Base64 is roughly 1.37x original size
+                                 this.iconUploadError = `Icon data too large after encoding. Try optimizing the image.`;
+                                 alert(this.iconUploadError);
+                                 return;
+                             }
+                             const newIcon = { id: Date.now(), name: file.name.split('.')[0] || 'Custom Icon', dataUrl: dataUrl };
+                             if (!Array.isArray(this.settings.pomodoroCustomIcons)) { this.settings.pomodoroCustomIcons = []; }
+                             this.settings.pomodoroCustomIcons = [...this.settings.pomodoroCustomIcons, newIcon];
+                             this.settings.pomodoroIconId = newIcon.id;
+                             console.log("Custom icon loaded and stored:", newIcon.name);
+                         }
+                         reader.onerror = (e) => { console.error("Error reading file:", e); this.iconUploadError = "Error reading the selected file."; alert(this.iconUploadError); }
+                         reader.readAsDataURL(file);
+                     } else if (file) { this.iconUploadError = "Please select a valid image file (PNG, SVG, JPG, GIF)."; alert(this.iconUploadError); }
+                      event.target.value = '';
+                 },
+                 deleteCustomPomodoroIcon(iconId) { /* ... (Unchanged) ... */ },
 
                 // --- ToDo Methods ---
                 addTodo() { if (this.newTodo.trim() === '') return; this.todos.push({ id: Date.now(), text: this.newTodo.trim(), completed: false, createdAt: Date.now(), completedAt: null, priority: 'Medium', status: 'ToDo' }); this.newTodo = ''; },
@@ -637,38 +673,17 @@
                 buildAnkiPayload(action, params = {}) { const payload = { action: action, version: 6, params: params }; if (this.settings.apiKeyAnki) { payload.key = this.settings.apiKeyAnki; } return payload; },
                 clearActionFeedback() { this.ankiActionFeedback = ''; this.ankiActionSuccess = false; this.ankiReviewFeedback = ''; },
                 showActionFeedback(message, success) { this.ankiActionFeedback = message; this.ankiActionSuccess = success; setTimeout(() => { this.clearActionFeedback(); }, 4000); },
-                async checkAnkiStatus() { this.ankiLoading = true; this.ankiConnected = false; this.ankiError = null; let connected = false; try { const payload = this.buildAnkiPayload("version"); const response = await fetch(this.ANKICONNECT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(3000) }); if (!response.ok) throw new Error(`HTTP status ${response.status}`); const data = await response.json(); if (data.error) throw new Error(data.error); this.ankiConnected = true; connected = true; console.log("AnkiConnect check successful. Version:", data.result); } catch (error) { this.ankiConnected = false; console.error('AnkiConnect initial check failed:', error.message); } finally { this.ankiLoading = false; this.ankiStatusCheckComplete = true; return connected; } },
-                async ankiAction(action, params = {}, feedbackMsg = null) { this.clearActionFeedback(); if (action !== 'version' && !this.ankiConnected) { const isConnected = await this.checkAnkiStatus(); if (!isConnected) { this.ankiError = "Cannot perform action: AnkiConnect is not connected."; this.ankiResult = null; this.showActionFeedback("Connection failed.", false); return null; } } this.ankiLoading = true; this.ankiResult = null; this.ankiError = null; console.log(`Calling AnkiConnect action: ${action} with params:`, params); try { const payload = this.buildAnkiPayload(action, params); console.log("Sending payload:", payload); const response = await fetch(this.ANKICONNECT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) }); if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); } const data = await response.json(); console.log("Received data:", data); if (data.error) { throw new Error(`AnkiConnect error: ${data.error}`); } this.ankiResult = data.result; this.ankiConnected = true; if (feedbackMsg) { this.showActionFeedback(feedbackMsg, true); } else if (action === 'sync') { this.showActionFeedback("Sync successful!", true); } else if (action === 'addNote') { this.showActionFeedback("Note added successfully!", true); this.newNoteFront = ''; this.newNoteBack = ''; this.newNoteTags = ''; } else if (action === 'guiDeckReview') { this.showActionFeedback("Opened deck in Anki.", true); } else if (action === 'answerCards') { this.showActionFeedback("Card graded!", true); } else if (action === 'deckNames') { this.showActionFeedback("Deck names refreshed!", true); } else if (action === 'getDeckStats') { this.showActionFeedback("Stats fetched!", true); } return data.result; } catch (error) { console.error('AnkiConnect request failed:', error); const errorMsg = `Action failed: ${error.message}.`; this.ankiError = errorMsg + " Check Anki/AnkiConnect & API Key."; this.ankiResult = null; this.ankiConnected = false; this.showActionFeedback(errorMsg, false); return null; } finally { this.ankiLoading = false; } },
-                async fetchDeckNames() { const names = await this.ankiAction('deckNames'); if (names !== null) { this.ankiDeckNames = names.sort(); console.log("Fetched deck names:", this.ankiDeckNames); if (!this.ankiDeckNames.includes(this.ankiReviewDeck)) this.ankiReviewDeck = ''; if (!this.ankiDeckNames.includes(this.ankiStatsDeck)) this.ankiStatsDeck = ''; if (!this.ankiDeckNames.includes(this.ankiGuiDeck)) this.ankiGuiDeck = ''; if (!this.ankiDeckNames.includes(this.newNoteDeck)) this.newNoteDeck = ''; } },
-                addAnkiNote() { if (!this.newNoteDeck) { this.showActionFeedback("Please select a deck first.", false); return; } if (!this.newNoteFront.trim()) { this.showActionFeedback("Front field is required.", false); return; } const noteData = { deckName: this.newNoteDeck, modelName: this.newNoteModel, fields: { "Front": this.newNoteFront.trim(), "Back": this.newNoteBack.trim() }, options: { allowDuplicate: false }, tags: this.newNoteTags.trim() ? this.newNoteTags.trim().split(/\s+/) : [] }; this.ankiAction('addNote', { note: noteData }); },
-                openDeckForReview() { if (!this.ankiGuiDeck) { this.showActionFeedback("Please select a deck to open.", false); return; } this.ankiAction('guiDeckReview', { name: this.ankiGuiDeck }); },
-                async getAndFormatDeckStats() { if (!this.ankiStatsDeck) { this.showActionFeedback("Please select a deck to get stats for.", false); return; } const rawStats = await this.ankiAction('getDeckStats', { decks: [this.ankiStatsDeck] }); if (rawStats) { const deckId = Object.keys(rawStats)[0]; if (deckId && rawStats[deckId]) { const stats = rawStats[deckId]; this.ankiFormattedStats = { deckName: stats.name, total: stats.total_in_deck || 0, new: stats.new_count || 0, learn: stats.learn_count || 0, due: (stats.review_count || 0) + (stats.relearn_count || 0) }; console.log("Formatted stats:", this.ankiFormattedStats); } else { this.showActionFeedback("Could not parse stats from response.", false); this.ankiFormattedStats = null; } } else { this.ankiFormattedStats = null; } },
+                async checkAnkiStatus() { /* ... (Unchanged, returns boolean) ... */ },
+                async ankiAction(action, params = {}, feedbackMsg = null) { /* ... (Unchanged, returns result or null) ... */ },
+                async fetchDeckNames() { /* ... (Unchanged) ... */ },
+                addAnkiNote() { /* ... (Unchanged) ... */ },
+                openDeckForReview() { /* ... (Unchanged) ... */ },
+                async getAndFormatDeckStats() { /* ... (Unchanged) ... */ },
+                processAnkiHtml(htmlContent) { /* ... (Unchanged) ... */ },
 
                 // --- Review Methods ---
-                async fetchNextDueCard() {
-                    this.currentReviewCard = null; this.showAnswer = false; this.ankiReviewAttempted = true; this.clearActionFeedback(); this.ankiReviewFeedback = '';
-                    let query = '';
-                    switch (this.ankiReviewType) {
-                        case 'new': query = 'is:new'; break;
-                        case 'learn': query = 'is:learn'; break;
-                        case 'due': default: query = 'is:due'; break;
-                    }
-                    if (this.ankiReviewDeck) { query += ` deck:"${this.ankiReviewDeck}"`; }
-                    const cardIds = await this.ankiAction('findCards', { query: query });
-                    if (cardIds && cardIds.length > 0) {
-                        const cardId = cardIds[0]; console.log("Found card ID:", cardId);
-                        const cardInfoResult = await this.ankiAction('cardsInfo', { cards: [cardId] });
-                        if (cardInfoResult && cardInfoResult.length > 0) {
-                            const cardData = cardInfoResult[0];
-                            this.currentReviewCard = { id: cardData.cardId, front: cardData.fields.Front?.value || '[Error: Front field missing]', back: cardData.fields.Back?.value || '[Error: Back field missing]' };
-                            console.log("Fetched card info:", this.currentReviewCard);
-                        } else { this.showActionFeedback("Failed to fetch card details.", false); }
-                    } else if (cardIds !== null) {
-                        this.ankiReviewFeedback = `No ${this.ankiReviewType} cards found in the selected deck.`; this.currentReviewCard = null;
-                        setTimeout(() => { this.ankiReviewFeedback = ''; this.ankiReviewAttempted = false; }, 5000);
-                    }
-                },
-                async answerCard(ease) { if (!this.currentReviewCard) return; const cardId = this.currentReviewCard.id; console.log(`Answering card ${cardId} with ease ${ease}`); const success = await this.ankiAction('answerCards', { answers: [{ cardId: cardId, ease: ease }] }); if (success !== null) { this.currentReviewCard = null; this.showAnswer = false; this.ankiReviewAttempted = false; this.fetchNextDueCard(); } },
+                async fetchNextDueCard() { /* ... (Unchanged) ... */ },
+                async answerCard(ease) { /* ... (Unchanged) ... */ },
 
                 // --- Keyboard Shortcut Handler ---
                  handleGlobalKeydown(event) {
@@ -684,7 +699,92 @@
                  },
 
                  // --- Weather & AQI Methods ---
-                async fetchWeatherAndAQI() { if (!this.settings.apiKeyWeather) { this.weatherError = "API Key not set. Please configure in Settings."; this.weatherData = null; return; } this.weatherLoading = true; this.weatherError = null; this.weatherData = null; console.log("Attempting to fetch weather/AQI (using placeholder)..."); try { await new Promise(resolve => setTimeout(resolve, 1000)); if (!this.settings.apiKeyWeather.startsWith('FAKE_')) { const simulatedWeatherData = { temp: 31.5, description: "Partly cloudy" }; const simulatedAqiData = { aqi: 78 }; this.weatherData = { temp: Math.round(simulatedWeatherData.temp), description: simulatedWeatherData.description, aqi: simulatedAqiData.aqi, }; console.log("Placeholder weather data loaded:", this.weatherData); } else { throw new Error("Using placeholder API Key."); } } catch (error) { console.error("Failed to fetch weather/AQI:", error); this.weatherError = `Failed to load weather: ${error.message}`; this.weatherData = null; } finally { this.weatherLoading = false; } },
+                async fetchWeatherAndAQI() { /* ... (Unchanged) ... */ },
+                startWeatherAutoRefresh() { /* ... (Unchanged) ... */ },
+                getAqiMeaning(aqiValue) { /* ... (Unchanged) ... */ },
+                getWeatherEmoji(description) { /* ... (Unchanged) ... */ },
+
+
+                // --- PASTE FULL IMPLEMENTATIONS of unchanged methods below ---
+                init() {
+                    console.log('Dashboard initializing...');
+                    const savedSettings = localStorage.getItem('alpineSettings'); if (savedSettings) { try { const parsedSettings = JSON.parse(savedSettings); this.settings = { apiKeyWeather: '', pomodoroWork: 25, pomodoroBreak: 5, pomodoroStyle: 'linear', pomodoroAlarmDuration: 3, pomodoroIconId: 'none', pomodoroCustomIcons: [], ankiConnectUrl: 'http://localhost:8765', ankiMediaUrl: 'http://localhost:8766', apiKeyAnki: '', ...parsedSettings }; if (!Array.isArray(this.settings.pomodoroCustomIcons)) { this.settings.pomodoroCustomIcons = []; } delete this.settings.pomodoroIcon; console.log('Loaded settings:', this.settings); } catch (e) { console.error("Error parsing settings", e); localStorage.removeItem('alpineSettings'); } }
+                    const savedTodos = localStorage.getItem('alpineTodos');
+                    if (savedTodos) {
+                        try {
+                            const parsedTodos = JSON.parse(savedTodos);
+                            this.todos = parsedTodos.map(todo => ({
+                                id: todo.id || Date.now(), text: todo.text || '', completed: todo.completed || false,
+                                createdAt: todo.createdAt || Date.now(), completedAt: todo.completedAt || null,
+                                priority: this.TODO_PRIORITIES.includes(todo.priority) ? todo.priority : 'Medium',
+                                status: this.TODO_STATUSES.includes(todo.status) ? todo.status : (todo.completed ? 'Done' : 'ToDo'),
+                            }));
+                        } catch (e) { console.error("Error parsing todos", e); localStorage.removeItem('alpineTodos'); this.todos = []; }
+                    } else { this.todos = []; }
+                    this.studyNotes = localStorage.getItem('studyNotes') || '';
+                    this.$watch('settings', (newSettings) => { localStorage.setItem('alpineSettings', JSON.stringify(newSettings)); console.log('Settings saved.'); this.settingsSaved = true; setTimeout(() => { this.settingsSaved = false; }, 2000); if (!this.isRunning) { this.resetTimerValues(); } }, { deep: true });
+                    this.$watch('todos', (newTodos) => { localStorage.setItem('alpineTodos', JSON.stringify(newTodos)); }, { deep: true });
+                    this.$watch('studyNotes', (newNotes) => { localStorage.setItem('studyNotes', newNotes); });
+                    this.resetTimerValues(); // Simplified: No persistence for now
+                    this.checkAnkiStatus().then(connected => { if (connected) { this.fetchDeckNames(); } });
+                    this.fetchWeatherAndAQI(); this.startWeatherAutoRefresh();
+                    console.log('Dashboard initialized.');
+                },
+                // startTimer() - updated above
+                // runTimerInterval() - updated above
+                // pauseTimer() - updated above
+                // resetTimerValues() - updated above
+                // resetTimer() - updated above
+                // switchMode() - updated above
+                playNotificationSound(durationSeconds = 3) { try { const audioContext = new (window.AudioContext || window.webkitAudioContext)(); const oscillator = audioContext.createOscillator(); const gainNode = audioContext.createGain(); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); oscillator.type = 'triangle'; oscillator.frequency.setValueAtTime(660, audioContext.currentTime); gainNode.gain.setValueAtTime(0.6, audioContext.currentTime); const beepLength = 0.3; const gapLength = 0.4; let startTime = audioContext.currentTime; while (startTime < audioContext.currentTime + durationSeconds) { oscillator.frequency.setValueAtTime(660, startTime); gainNode.gain.setValueAtTime(0.6, startTime); oscillator.frequency.setValueAtTime(880, startTime + beepLength * 0.5); gainNode.gain.linearRampToValueAtTime(0, startTime + beepLength); startTime += beepLength + gapLength; } oscillator.start(audioContext.currentTime); oscillator.stop(audioContext.currentTime + durationSeconds); } catch (e) { console.error("Could not play notification sound:", e); } },
+                handleCustomIconUpload(event) { this.iconUploadError = ''; const file = event.target.files[0]; if (file && file.type.startsWith('image/')) { const MAX_SIZE_MB = 1; if (file.size > MAX_SIZE_MB * 1024 * 1024) { this.iconUploadError = `Icon file too large (Max ${MAX_SIZE_MB}MB).`; alert(this.iconUploadError); event.target.value = ''; return; } const reader = new FileReader(); reader.onload = (e) => { const dataUrl = e.target.result; if (dataUrl.length > MAX_SIZE_MB * 1024 * 1024 * 1.4) { this.iconUploadError = `Icon data too large after encoding. Try optimizing the image.`; alert(this.iconUploadError); return; } const newIcon = { id: Date.now(), name: file.name.split('.')[0] || 'Custom Icon', dataUrl: dataUrl }; if (!Array.isArray(this.settings.pomodoroCustomIcons)) { this.settings.pomodoroCustomIcons = []; } this.settings.pomodoroCustomIcons = [...this.settings.pomodoroCustomIcons, newIcon]; this.settings.pomodoroIconId = newIcon.id; console.log("Custom icon loaded and stored:", newIcon.name); }; reader.onerror = (e) => { console.error("Error reading file:", e); this.iconUploadError = "Error reading the selected file."; alert(this.iconUploadError); }; reader.readAsDataURL(file); } else if (file) { this.iconUploadError = "Please select a valid image file (PNG, SVG, JPG, GIF)."; alert(this.iconUploadError); } event.target.value = ''; },
+                deleteCustomPomodoroIcon(iconId) { this.settings.pomodoroCustomIcons = this.settings.pomodoroCustomIcons.filter(icon => icon.id !== iconId); if (this.settings.pomodoroIconId === iconId) { this.settings.pomodoroIconId = 'none'; } },
+                addTodo() { if (this.newTodo.trim() === '') return; this.todos.push({ id: Date.now(), text: this.newTodo.trim(), completed: false, createdAt: Date.now(), completedAt: null, priority: 'Medium', status: 'ToDo' }); this.newTodo = ''; },
+                findTodoIndexById(id) { return this.todos.findIndex(todo => todo.id === id); },
+                toggleTodoComplete(id) { const index = this.findTodoIndexById(id); if (index === -1) return; this.todos[index].completed = !this.todos[index].completed; if (this.todos[index].completed) { this.todos[index].completedAt = Date.now(); this.todos[index].status = 'Done'; } else { this.todos[index].completedAt = null; if(this.todos[index].status === 'Done') { this.todos[index].status = 'ToDo'; } } },
+                updateTodoStatus(id, newStatus) { const index = this.findTodoIndexById(id); if (index === -1) return; this.todos[index].status = newStatus; if (newStatus === 'Done') { if (!this.todos[index].completed) { this.todos[index].completed = true; this.todos[index].completedAt = Date.now(); } } else { if (this.todos[index].completed) { this.todos[index].completed = false; this.todos[index].completedAt = null; } } },
+                updateTodo(id) { const index = this.findTodoIndexById(id); if (index !== -1) console.log("Todo updated:", this.todos[index]); },
+                deleteTodo(id) { const index = this.findTodoIndexById(id); if (index !== -1) { this.todos.splice(index, 1); } },
+                formatTimestamp(timestamp) { if (!timestamp) return ''; try { return new Date(timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); } catch (e) { console.error("Error formatting timestamp:", e); return 'Invalid Date'; } },
+                getPriorityClass(priority) { switch (priority) { case 'Low': return 'priority-low'; case 'Medium': return 'priority-medium'; case 'High': return 'priority-high'; case 'Critical': return 'priority-critical'; default: return 'bg-gray-100 text-gray-800'; } },
+                getStatusClass(status) { switch (status) { case 'ToDo': return 'status-todo'; case 'Doing': return 'status-doing'; case 'On Hold': return 'status-onhold'; case 'Done': return 'status-done'; default: return 'bg-gray-100 text-gray-800'; } },
+                buildAnkiPayload(action, params = {}) { const payload = { action: action, version: 6, params: params }; if (this.settings.apiKeyAnki) { payload.key = this.settings.apiKeyAnki; } return payload; },
+                showActionFeedback(message, success) { this.ankiActionFeedback = message; this.ankiActionSuccess = success; setTimeout(() => { this.clearActionFeedback(); }, 4000); },
+                async checkAnkiStatus() { this.ankiLoading = true; this.ankiConnected = false; this.ankiError = null; let connected = false; try { const payload = this.buildAnkiPayload("version"); const response = await fetch(this.ANKICONNECT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(3000) }); if (!response.ok) throw new Error(`HTTP status ${response.status}`); const data = await response.json(); if (data.error) throw new Error(data.error); this.ankiConnected = true; connected = true; console.log("AnkiConnect check successful. Version:", data.result); } catch (error) { this.ankiConnected = false; console.error('AnkiConnect initial check failed:', error.message); } finally { this.ankiLoading = false; this.ankiStatusCheckComplete = true; return connected; } },
+                async ankiAction(action, params = {}, feedbackMsg = null) { this.clearActionFeedback(); if (action !== 'version' && !this.ankiConnected) { const isConnected = await this.checkAnkiStatus(); if (!isConnected) { this.ankiError = "Cannot perform action: AnkiConnect is not connected."; this.ankiResult = null; this.showActionFeedback("Connection failed.", false); return null; } } this.ankiLoading = true; this.ankiResult = null; this.ankiError = null; console.log(`Calling AnkiConnect action: ${action} with params:`, params); try { const payload = this.buildAnkiPayload(action, params); console.log("Sending payload:", payload); const response = await fetch(this.ANKICONNECT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) }); if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); } const data = await response.json(); console.log("Received data:", data); if (data.error) { throw new Error(`AnkiConnect error: ${data.error}`); } this.ankiResult = data.result; this.ankiConnected = true; if (feedbackMsg) { this.showActionFeedback(feedbackMsg, true); } else if (action === 'sync') { this.showActionFeedback("Sync successful!", true); } else if (action === 'addNote') { this.showActionFeedback("Note added successfully!", true); this.newNoteFront = ''; this.newNoteBack = ''; this.newNoteTags = ''; } else if (action === 'guiDeckReview') { this.showActionFeedback("Opened deck in Anki.", true); } else if (action === 'answerCards') { this.showActionFeedback("Card graded!", true); } else if (action === 'deckNames') { this.showActionFeedback("Deck names refreshed!", true); } else if (action === 'getDeckStats') { this.showActionFeedback("Stats fetched!", true); } return data.result; } catch (error) { console.error('AnkiConnect request failed:', error); const errorMsg = `Action failed: ${error.message}.`; this.ankiError = errorMsg + " Check Anki/AnkiConnect & API Key."; this.ankiResult = null; this.ankiConnected = false; this.showActionFeedback(errorMsg, false); return null; } finally { this.ankiLoading = false; } },
+                async fetchDeckNames() { const names = await this.ankiAction('deckNames'); if (names !== null) { this.ankiDeckNames = names.sort(); console.log("Fetched deck names:", this.ankiDeckNames); if (!this.ankiDeckNames.includes(this.ankiReviewDeck)) this.ankiReviewDeck = ''; if (!this.ankiDeckNames.includes(this.ankiStatsDeck)) this.ankiStatsDeck = ''; if (!this.ankiDeckNames.includes(this.ankiGuiDeck)) this.ankiGuiDeck = ''; if (!this.ankiDeckNames.includes(this.newNoteDeck)) this.newNoteDeck = ''; } },
+                addAnkiNote() { if (!this.newNoteDeck) { this.showActionFeedback("Please select a deck first.", false); return; } if (!this.newNoteFront.trim()) { this.showActionFeedback("Front field is required.", false); return; } const noteData = { deckName: this.newNoteDeck, modelName: this.newNoteModel, fields: { "Front": this.newNoteFront.trim(), "Back": this.newNoteBack.trim() }, options: { allowDuplicate: false }, tags: this.newNoteTags.trim() ? this.newNoteTags.trim().split(/\s+/) : [] }; this.ankiAction('addNote', { note: noteData }); },
+                openDeckForReview() { if (!this.ankiGuiDeck) { this.showActionFeedback("Please select a deck to open.", false); return; } this.ankiAction('guiDeckReview', { name: this.ankiGuiDeck }); },
+                async getAndFormatDeckStats() { if (!this.ankiStatsDeck) { this.showActionFeedback("Please select a deck to get stats for.", false); return; } const rawStats = await this.ankiAction('getDeckStats', { decks: [this.ankiStatsDeck] }); if (rawStats) { const deckId = Object.keys(rawStats)[0]; if (deckId && rawStats[deckId]) { const stats = rawStats[deckId]; this.ankiFormattedStats = { deckName: stats.name, total: stats.total_in_deck || 0, new: stats.new_count || 0, learn: stats.learn_count || 0, due: (stats.review_count || 0) + (stats.relearn_count || 0) }; console.log("Formatted stats:", this.ankiFormattedStats); } else { this.showActionFeedback("Could not parse stats from response.", false); this.ankiFormattedStats = null; } } else { this.ankiFormattedStats = null; } },
+                processAnkiHtml(htmlContent) { if (!htmlContent || !this.ANKI_MEDIA_URL) { return htmlContent || ''; } const imgRegex = /<img\s+[^>]*src="(?!(?:https?:|\/\/|data:))([^"]+)"[^>]*>/gi; let processedHtml = htmlContent.replace(imgRegex, (match, src) => { const baseUrl = this.ANKI_MEDIA_URL.endsWith('/') ? this.ANKI_MEDIA_URL : this.ANKI_MEDIA_URL + '/'; const newSrc = baseUrl + src; return match.replace(`src="${src}"`, `src="${newSrc}"`); }); return processedHtml; },
+                async fetchNextDueCard() {
+                    this.currentReviewCard = null; this.showAnswer = false; this.ankiReviewAttempted = true; this.clearActionFeedback(); this.ankiReviewFeedback = '';
+                    let query = '';
+                    switch (this.ankiReviewType) {
+                        case 'new': query = 'is:new'; break;
+                        case 'learn': query = 'is:learn'; break;
+                        case 'due': default: query = 'is:due'; break;
+                    }
+                    if (this.ankiReviewDeck) { query += ` deck:"${this.ankiReviewDeck}"`; }
+                    const cardIds = await this.ankiAction('findCards', { query: query });
+                    if (cardIds && cardIds.length > 0) {
+                        const cardId = cardIds[0]; console.log("Found card ID:", cardId);
+                        const cardInfoResult = await this.ankiAction('cardsInfo', { cards: [cardId] });
+                        if (cardInfoResult && cardInfoResult.length > 0) {
+                            const cardData = cardInfoResult[0];
+                            const frontHtml = this.processAnkiHtml(cardData.fields.Front?.value); const backHtml = this.processAnkiHtml(cardData.fields.Back?.value);
+                            this.currentReviewCard = { id: cardData.cardId, front: frontHtml || '[Error: Front field missing]', back: backHtml || '[Error: Back field missing]' };
+                            console.log("Fetched card info (processed):", this.currentReviewCard);
+                        } else { this.showActionFeedback("Failed to fetch card details.", false); }
+                    } else if (cardIds !== null) {
+                        this.ankiReviewFeedback = `No ${this.ankiReviewType} cards found in the selected deck.`; this.currentReviewCard = null;
+                        setTimeout(() => { this.ankiReviewFeedback = ''; this.ankiReviewAttempted = false; }, 5000);
+                    }
+                },
+                async answerCard(ease) { if (!this.currentReviewCard) return; const cardId = this.currentReviewCard.id; console.log(`Answering card ${cardId} with ease ${ease}`); const success = await this.ankiAction('answerCards', { answers: [{ cardId: cardId, ease: ease }] }); if (success !== null) { this.currentReviewCard = null; this.showAnswer = false; this.ankiReviewAttempted = false; this.fetchNextDueCard(); } },
+                handleGlobalKeydown(event) { if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') { return; } if (this.activeTab !== 'anki' && this.activeTab !== 'study') return; if (this.currentReviewCard) { if (event.code === 'Space' && !this.showAnswer) { event.preventDefault(); this.showAnswer = true; console.log('Keyboard: Show Answer'); } else if (this.showAnswer && ['1', '2', '3', '4'].includes(event.key)) { event.preventDefault(); console.log(`Keyboard: Grade ${event.key}`); this.answerCard(parseInt(event.key)); } } else { if (event.key === 'Enter') { event.preventDefault(); console.log('Keyboard: Fetch Next'); this.fetchNextDueCard(); } } },
+                async fetchWeatherAndAQI() { if (!this.settings.apiKeyWeather) { this.weatherError = "API Key not set. Please configure in Settings."; this.weatherData = null; return; } this.weatherLoading = true; this.weatherError = null; console.log("Attempting to fetch weather/AQI (using placeholder)..."); try { await new Promise(resolve => setTimeout(resolve, 1000)); if (!this.settings.apiKeyWeather.startsWith('FAKE_')) { const simulatedWeatherData = { temp: 31.5, description: "Partly cloudy" }; const simulatedAqiData = { aqi: 78 }; this.weatherData = { temp: Math.round(simulatedWeatherData.temp), description: simulatedWeatherData.description, aqi: simulatedAqiData.aqi, }; console.log("Placeholder weather data loaded:", this.weatherData); } else { throw new Error("Using placeholder API Key."); } } catch (error) { console.error("Failed to fetch weather/AQI:", error); this.weatherError = `Failed to load weather: ${error.message}`; this.weatherData = null; } finally { this.weatherLoading = false; } },
+                startWeatherAutoRefresh() { if (this.weatherIntervalId) clearInterval(this.weatherIntervalId); this.weatherIntervalId = setInterval(() => { console.log("Auto-refreshing weather data..."); if (this.settings.apiKeyWeather) { this.fetchWeatherAndAQI(); } else { console.log("Skipping weather auto-refresh: API key missing."); } }, 4 * 60 * 60 * 1000); console.log("Weather auto-refresh interval started."); },
                 getAqiMeaning(aqiValue) { if (aqiValue === null || aqiValue === undefined) return 'N/A'; if (aqiValue <= 50) return 'Good'; if (aqiValue <= 100) return 'Moderate'; if (aqiValue <= 150) return 'Unhealthy for Sensitive Groups'; if (aqiValue <= 200) return 'Unhealthy'; if (aqiValue <= 300) return 'Very Unhealthy'; return 'Hazardous'; },
                 getWeatherEmoji(description) { if (!description) return '<?> '; const descLower = description.toLowerCase(); if (descLower.includes('clear')) return '☀️ '; if (descLower.includes('few clouds')) return '🌤️ '; if (descLower.includes('scattered clouds')) return '☁️ '; if (descLower.includes('broken clouds') || descLower.includes('overcast')) return '🌥️ '; if (descLower.includes('shower rain') || descLower.includes('rain')) return '🌧️ '; if (descLower.includes('thunderstorm')) return '⛈️ '; if (descLower.includes('snow')) return '❄️ '; if (descLower.includes('mist') || descLower.includes('fog')) return '🌫️ '; return ''; }
 
